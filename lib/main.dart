@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:launch_at_startup/launch_at_startup.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -56,6 +58,13 @@ Future<void> _hideToBanner() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
+
+  // Configure login-at-startup (registers via macOS SMAppService when enabled).
+  final packageInfo = await PackageInfo.fromPlatform();
+  launchAtStartup.setup(
+    appName: packageInfo.appName,
+    appPath: Platform.resolvedExecutable,
+  );
 
   final display =
       WidgetsBinding.instance.platformDispatcher.displays.firstOrNull;
@@ -137,6 +146,11 @@ class App extends StatelessWidget {
                           error: 'Gmail rejected these credentials. Use a '
                               '16-character App Password (requires 2-Step '
                               'Verification), entered without spaces.',
+                        );
+                      } else if (isCredentialError(message)) {
+                        _showSettings(
+                          error: "Couldn't read your saved credentials. "
+                              'Please re-enter them.',
                         );
                       } else {
                         debugPrint('IMAP error: $message');

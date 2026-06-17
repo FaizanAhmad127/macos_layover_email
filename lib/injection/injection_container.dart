@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 
+import '../core/startup_service.dart';
 import '../data/datasources/credential_data_source.dart';
 import '../data/datasources/imap_data_source.dart';
 import '../data/repositories/credential_repository_impl.dart';
@@ -43,4 +44,7 @@ void initDependencies() {
   sl.registerLazySingleton<ImapDataSource>(() => ImapDataSourceImpl());
   sl.registerLazySingleton<CredentialDataSource>(
       () => CredentialDataSourceImpl());
+
+  // Platform services
+  sl.registerLazySingleton<StartupService>(() => LaunchAtStartupService());
 }

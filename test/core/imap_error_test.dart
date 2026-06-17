@@ -30,4 +30,28 @@ void main() {
       expect(isAuthFailure(''), isFalse);
     });
   });
+
+  group('isCredentialError', () {
+    test('true for auth failures (superset of isAuthFailure)', () {
+      expect(isCredentialError('[AUTHENTICATIONFAILED] Invalid credentials'),
+          isTrue);
+    });
+
+    test('true for Keychain -25308 interaction-not-allowed', () {
+      expect(
+        isCredentialError(
+            'PlatformException(Unexpected security result code, Code: -25308, Message: User interaction is not allowed., -25308, null)'),
+        isTrue,
+      );
+    });
+
+    test('true for Keychain -34018 missing-entitlement', () {
+      expect(isCredentialError('Code: -34018 entitlement not present'), isTrue);
+    });
+
+    test('false for transient network errors', () {
+      expect(isCredentialError('SocketException: Connection refused'), isFalse);
+      expect(isCredentialError('Operation timed out'), isFalse);
+    });
+  });
 }

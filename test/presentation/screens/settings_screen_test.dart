@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:macos_layover_email/core/startup_service.dart';
 import 'package:macos_layover_email/domain/entities/credentials.dart';
 import 'package:macos_layover_email/domain/usecases/clear_credentials.dart';
 import 'package:macos_layover_email/domain/usecases/load_credentials.dart';
@@ -21,14 +22,21 @@ class MockClearCredentials extends Mock implements ClearCredentials {}
 class MockCredentialsCubit extends MockCubit<CredentialsState>
     implements CredentialsCubit {}
 
+class MockStartupService extends Mock implements StartupService {}
+
 void main() {
   late MockCredentialsCubit mockCubit;
+  late MockStartupService mockStartup;
 
   const tCredentials = Credentials(email: 'test@gmail.com', password: 'pass');
 
   setUp(() {
     mockCubit = MockCredentialsCubit();
     when(() => mockCubit.state).thenReturn(const CredentialsInitial());
+    mockStartup = MockStartupService();
+    when(() => mockStartup.isEnabled()).thenAnswer((_) async => false);
+    when(() => mockStartup.enable()).thenAnswer((_) async {});
+    when(() => mockStartup.disable()).thenAnswer((_) async {});
   });
 
   Widget buildSubject({String? initialEmail, String? errorMessage}) {
@@ -39,6 +47,7 @@ void main() {
           body: SettingsScreen(
             initialEmail: initialEmail,
             errorMessage: errorMessage,
+            startupService: mockStartup,
           ),
         ),
       ),
@@ -190,5 +199,57 @@ void main() {
     await tester.pump();
 
     expect(find.text('Credentials cleared.'), findsOneWidget);
+  });
+
+  group('start at login', () {
+    testWidgets('shows the checkbox, checked by default on first run',
+        (tester) async {
+      await tester.pumpWidget(buildSubject()); // no initialEmail = first run
+      await tester.pump();
+
+      expect(
+        find.text('Start automatically at login (recommended)'),
+        findsOneWidget,
+      );
+      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
+      expect(checkbox.value, isTrue);
+    });
+
+    testWidgets('reflects the real OS state for a returning user',
+        (tester) async {
+      when(() => mockStartup.isEnabled()).thenAnswer((_) async => false);
+
+      await tester.pumpWidget(buildSubject(initialEmail: tCredentials.email));
+      await tester.pump(); // let _loadStartupState resolve
+
+      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
+      expect(checkbox.value, isFalse);
+      verify(() => mockStartup.isEnabled()).called(1);
+    });
+
+    testWidgets('unchecking calls startup.disable()', (tester) async {
+      await tester.pumpWidget(buildSubject());
+      await tester.pump();
+
+      await tester.tap(find.byType(Checkbox)); // true -> false
+      await tester.pump();
+
+      verify(() => mockStartup.disable()).called(1);
+    });
+
+    testWidgets('Save applies the login preference (enable when checked)',
+        (tester) async {
+      when(() => mockCubit.save(any(), any())).thenAnswer((_) async {});
+      await tester.pumpWidget(buildSubject());
+
+      await tester.enterText(
+          find.widgetWithText(TextField, 'you@gmail.com'), 'me@gmail.com');
+      await tester.enterText(
+          find.widgetWithText(TextField, '16-character app password'), 'pw');
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+
+      verify(() => mockStartup.enable()).called(1);
+    });
   });
 }

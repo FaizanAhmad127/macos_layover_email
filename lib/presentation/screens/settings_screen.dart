@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/startup_service.dart';
+import '../../injection/injection_container.dart';
 import '../cubits/credentials/credentials_cubit.dart';
 import '../cubits/credentials/credentials_state.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, this.initialEmail, this.errorMessage});
+  const SettingsScreen({
+    super.key,
+    this.initialEmail,
+    this.errorMessage,
+    this.startupService,
+  });
 
   final String? initialEmail;
 
   /// Pre-displayed error (e.g. shown when reopened after an auth failure).
   final String? errorMessage;
+
+  /// Injectable for tests; falls back to the GetIt-registered service.
+  final StartupService? startupService;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -19,17 +29,45 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _passCtrl;
+  late final StartupService _startup;
   String? _statusMessage;
   bool _isError = false;
+
+  // Recommended ON by default on first run (no saved email yet); for a
+  // returning user we reflect the real OS login-item state instead.
+  bool _startAtLogin = true;
 
   @override
   void initState() {
     super.initState();
     _emailCtrl = TextEditingController(text: widget.initialEmail ?? '');
     _passCtrl = TextEditingController();
+    _startup = widget.startupService ?? sl<StartupService>();
     if (widget.errorMessage != null) {
       _statusMessage = widget.errorMessage;
       _isError = true;
+    }
+    final email = widget.initialEmail;
+    if (email != null && email.isNotEmpty) {
+      _loadStartupState();
+    }
+  }
+
+  Future<void> _loadStartupState() async {
+    try {
+      final enabled = await _startup.isEnabled();
+      if (mounted) setState(() => _startAtLogin = enabled);
+    } catch (_) {
+      // Leave the default if the platform query fails.
+    }
+  }
+
+  Future<void> _setStartAtLogin(bool value) async {
+    setState(() => _startAtLogin = value);
+    try {
+      value ? await _startup.enable() : await _startup.disable();
+    } catch (_) {
+      // Non-fatal: keep the UI state even if the toggle didn't take.
     }
   }
 
@@ -64,6 +102,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
     context.read<CredentialsCubit>().save(email, pass);
+    // Apply the login-at-startup choice (covers the first-run default-on case
+    // where the checkbox was never toggled).
+    _setStartAtLogin(_startAtLogin);
   }
 
   void _clear() => context.read<CredentialsCubit>().clear();
@@ -124,7 +165,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
               hint: '16-character app password',
               obscure: true,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => _setStartAtLogin(!_startAtLogin),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: Checkbox(
+                        value: _startAtLogin,
+                        onChanged: (v) => _setStartAtLogin(v ?? false),
+                        side: const BorderSide(color: Color(0xFF777777)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Start automatically at login (recommended)',
+                        style: TextStyle(color: Color(0xFFDDDDDD), fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
