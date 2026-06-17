@@ -19,8 +19,17 @@ macOS background agent that watches Gmail (IMAP IDLE) and displays a floating ov
 - GitHub token → `~/.claude/mcp.json` only, never committed
 - `.env` / `google-services.json` are gitignored
 
+## What NOT to do
+- Never `print` or `debugPrint` email subjects, sender addresses, or any credential value — privacy risk even in debug builds
+- Never disable the macOS sandbox (`com.apple.security.app-sandbox`) — entitlements already grant what's needed
+- Never store credentials in `SharedPreferences`, local files, or `UserDefaults` — Keychain only
+- Never commit with `--no-verify` to skip hooks
+- Never hardcode IMAP host, port, or any account value — use constants or config, not inline strings scattered across files
+- Never push a build artifact (`build/`, `.app`, `.ipa`) to git
+
 ## Rules
 - Update `PROGRESS.md` after every completed task
+- Run `CHECKLIST.md` pre-push and pre-run checks before every push or `flutter run`
 - Keep `CLAUDE.md` for permanent facts only — put task history in `PROGRESS.md`
 
 @PROGRESS.md

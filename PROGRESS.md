@@ -34,6 +34,22 @@ SOLID: DI via constructor injection, abstractions for all data sources + reposit
 Background agent with full clean architecture and passing test suite. EmailMonitorCubit starts on launch, connects to Gmail IMAP IDLE, emits EmailMonitorNewEmail state when mail arrives. Debug prints subject to console. No banner UI yet.
 
 ## Next
-1. Overlay banner widget (pink waving flag + subject text, slide-in left→right animation)
-2. Wire `EmailMonitorNewEmail` state → show banner window via window_manager
-3. Settings UI for Gmail credentials entry (email + app password → saved to Keychain)
+
+### 1. Overlay banner widget
+- Separate floating `NSWindow` opened via `window_manager` at `NSWindowLevel.floating + 1` (above everything)
+- Position: top-right of primary screen, full width, ~80px tall
+- Content (left→right): animated waving pink flag (emoji `🚩` with a subtle rotation loop) + email subject in white bold text on a dark semi-transparent background
+- Animation: window slides in from the left edge of the screen (off-screen → on-screen) over ~400ms using a `CurvedAnimation`
+- Auto-dismiss: stays visible for 5 seconds, then slides back out to the left and the window is hidden
+- Widget lives at `lib/presentation/widgets/email_banner.dart`
+
+### 2. Wire EmailMonitorNewEmail → banner
+- In `main.dart` `BlocListener`, on `EmailMonitorNewEmail` state: call a `BannerController` (or direct `window_manager` call) to show the banner window and pass the subject string
+- The banner window is created once at startup (hidden), shown/hidden on demand — do not create a new window per email
+
+### 3. Settings UI for credentials
+- Triggered by a menu bar icon or a keyboard shortcut (TBD — decide before implementing)
+- Form: two fields — Gmail address + App Password (obscured)
+- On save: calls `CredentialsCubit.save()` → stored in Keychain; on success show a brief confirmation
+- On clear: calls `CredentialsCubit.clear()`, `EmailMonitorCubit.restart()` re-connects
+- Widget lives at `lib/presentation/screens/settings_screen.dart`
