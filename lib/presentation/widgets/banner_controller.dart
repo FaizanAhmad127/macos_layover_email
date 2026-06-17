@@ -1,16 +1,18 @@
 import 'dart:async';
 
+/// Bridges the email-monitor state to the [EmailBanner]. Carries both the
+/// subject and the sender so the banner can show who the mail is from.
 class BannerController {
-  final _subject = StreamController<String>.broadcast();
+  final _events = StreamController<({String subject, String from})>.broadcast();
 
-  Stream<String> get stream => _subject.stream;
+  Stream<({String subject, String from})> get stream => _events.stream;
 
-  // Set true while settings window is open to suppress banner pop-ups
+  // Set true while the settings window is open to suppress banner pop-ups.
   bool settingsOpen = false;
 
-  void show(String subject) {
-    if (!settingsOpen) _subject.add(subject);
+  void show({required String subject, required String from}) {
+    if (!settingsOpen) _events.add((subject: subject, from: from));
   }
 
-  void dispose() => _subject.close();
+  void dispose() => _events.close();
 }

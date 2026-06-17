@@ -7,41 +7,39 @@ void main() {
   setUp(() => sut = BannerController());
   tearDown(() => sut.dispose());
 
-  test('show emits subject on stream', () async {
-    expectLater(sut.stream, emits('Hello from test'));
-    sut.show('Hello from test');
+  test('show emits subject and sender on stream', () async {
+    expectLater(
+      sut.stream,
+      emits((subject: 'Hello', from: 'a@b.com')),
+    );
+    sut.show(subject: 'Hello', from: 'a@b.com');
   });
 
-  test('multiple listeners receive the same subject (broadcast)', () async {
-    final received1 = <String>[];
-    final received2 = <String>[];
+  test('multiple listeners receive the same event (broadcast)', () async {
+    final r1 = <({String subject, String from})>[];
+    final r2 = <({String subject, String from})>[];
 
-    sut.stream.listen(received1.add);
-    sut.stream.listen(received2.add);
+    sut.stream.listen(r1.add);
+    sut.stream.listen(r2.add);
 
-    sut.show('First');
-    sut.show('Second');
+    sut.show(subject: 'First', from: 'x@y.com');
+    sut.show(subject: 'Second', from: 'p@q.com');
 
     await Future<void>.delayed(Duration.zero);
 
-    expect(received1, ['First', 'Second']);
-    expect(received2, ['First', 'Second']);
-  });
-
-  test('stream emits subjects in order', () async {
-    final subjects = ['Alpha', 'Beta', 'Gamma'];
-    expectLater(sut.stream, emitsInOrder(subjects));
-    for (final s in subjects) {
-      sut.show(s);
-    }
+    expect(r1, [
+      (subject: 'First', from: 'x@y.com'),
+      (subject: 'Second', from: 'p@q.com'),
+    ]);
+    expect(r2, r1);
   });
 
   test('show is suppressed when settingsOpen is true', () async {
     sut.settingsOpen = true;
-    final received = <String>[];
+    final received = <({String subject, String from})>[];
     sut.stream.listen(received.add);
 
-    sut.show('Should be blocked');
+    sut.show(subject: 'Blocked', from: 'x@y.com');
     await Future<void>.delayed(Duration.zero);
 
     expect(received, isEmpty);
@@ -49,10 +47,10 @@ void main() {
 
   test('show resumes after settingsOpen is set back to false', () async {
     sut.settingsOpen = true;
-    sut.show('Blocked');
+    sut.show(subject: 'Blocked', from: 'x@y.com');
 
     sut.settingsOpen = false;
-    expectLater(sut.stream, emits('Visible'));
-    sut.show('Visible');
+    expectLater(sut.stream, emits((subject: 'Visible', from: 'z@w.com')));
+    sut.show(subject: 'Visible', from: 'z@w.com');
   });
 }

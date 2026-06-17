@@ -91,6 +91,10 @@ void main() async {
     () async {
       await windowManager.setPosition(_bannerPosition);
       await windowManager.setHasShadow(false);
+      // Appear on every Space and over full-screen apps — not just whichever
+      // app/Space is currently active.
+      await windowManager.setVisibleOnAllWorkspaces(true,
+          visibleOnFullScreen: true);
       // Click-through while idle; EmailBanner makes it interactive when shown.
       await windowManager.setIgnoreMouseEvents(true);
     },
@@ -144,7 +148,10 @@ class App extends StatelessWidget {
                     case EmailMonitorNewEmail(:final email):
                       // Privacy-safe: log the event, never the subject/sender.
                       debugPrint('New email received — showing banner');
-                      bannerController.show(email.subject);
+                      bannerController.show(
+                        subject: email.subject,
+                        from: email.from,
+                      );
                     case EmailMonitorCredentialsMissing():
                       _showSettings();
                     case EmailMonitorError(:final message):

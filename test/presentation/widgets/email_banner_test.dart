@@ -35,22 +35,23 @@ void main() {
         ),
       );
 
-  testWidgets('hidden until a subject arrives', (tester) async {
+  testWidgets('hidden until an email arrives', (tester) async {
     await tester.pumpWidget(wrap());
     expect(find.text('Hello there'), findsNothing);
     expect(find.byIcon(Icons.cancel), findsNothing);
   });
 
-  testWidgets('shows the flag, subject and close button on new email',
+  testWidgets('shows email icon, sender, subject and close button',
       (tester) async {
     await tester.pumpWidget(wrap());
 
-    controller.show('Hello there');
+    controller.show(subject: 'Hello there', from: 'sender@example.com');
     await tester.pump(); // process stream
     await tester.pump(); // rebuild visible
 
-    expect(find.text('🚩'), findsOneWidget);
+    expect(find.byIcon(Icons.email), findsOneWidget);
     expect(find.text('Hello there'), findsOneWidget);
+    expect(find.text('sender@example.com'), findsOneWidget);
     expect(find.byIcon(Icons.cancel), findsOneWidget);
     // Window was asked to become interactive and show.
     expect(calls, contains('setIgnoreMouseEvents'));
@@ -60,7 +61,7 @@ void main() {
   testWidgets('tapping the close button dismisses the banner', (tester) async {
     await tester.pumpWidget(wrap());
 
-    controller.show('Dismiss me');
+    controller.show(subject: 'Dismiss me', from: 'x@y.com');
     await tester.pump();
     await tester.pump();
     expect(find.text('Dismiss me'), findsOneWidget);

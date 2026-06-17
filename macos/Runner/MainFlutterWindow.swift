@@ -9,14 +9,19 @@ class MainFlutterWindow: NSWindow {
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
-    // Transparent overlay window: the banner shows only the flag + text, with no
-    // window background/chrome. Requires a non-opaque window with a clear color
-    // and a clear backing layer on the Flutter view.
+    // Transparent overlay window: the banner shows only the icon + text, with no
+    // window background/chrome. Needs a non-opaque window AND a non-opaque
+    // Flutter view layer — otherwise the view paints an opaque (black) backing.
     self.isOpaque = false
     self.backgroundColor = .clear
     self.hasShadow = false
-    flutterViewController.view.wantsLayer = true
-    flutterViewController.view.layer?.backgroundColor = NSColor.clear.cgColor
+    let flutterView = flutterViewController.view
+    flutterView.wantsLayer = true
+    flutterView.layer?.isOpaque = false
+    flutterView.layer?.backgroundColor = NSColor.clear.cgColor
+
+    // Show on every Space and over full-screen apps, not just the current one.
+    self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
