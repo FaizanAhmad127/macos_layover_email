@@ -171,6 +171,7 @@ cubit, repository, or widget ships with tests.
 | `-34018 — A required entitlement isn't present` | App isn't signed with a development cert. Set your Team in Xcode (see §2a) and rebuild. |
 | Build: *"entitlements require signing with a development certificate"* | Same as above — select your Team; first build needs `-allowProvisioningUpdates` (see §4). |
 | App quits right after Save / when banner hides | Fixed in code (`AppDelegate.applicationShouldTerminateAfterLastWindowClosed = false`). Make sure you're on the latest build. |
+| `-25308 — User interaction is not allowed` after rebuilding | Keychain items can become unreadable when the app binary is re-signed (dev rebuilds). The app now auto-reopens Settings — just **re-enter your credentials once** on the new build. End users who install once never hit this. |
 | `Failed to foreground app; open returned 1` | Harmless — expected for a Dock-less `LSUIElement` background app. |
 | No banner appears on new mail | Confirm the agent is connected (no Settings error), and that the email is genuinely *new* (IMAP IDLE notifies on arrival, not for existing unread mail). |
 

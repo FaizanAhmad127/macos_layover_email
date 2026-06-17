@@ -72,6 +72,15 @@ flutter_secure_storage throws `-34018 errSecMissingEntitlement` at save time.
 - Auth-failure UX ✅ (bad creds → Settings reopens with red error, email pre-filled)
 - Password show/hide toggle ✅
 
+## Launch at login
+- `launch_at_startup` + `package_info_plus`; `StartupService` abstraction (GetIt).
+- Settings has a "Start automatically at login (recommended)" checkbox — ON by
+  default on first run, reflects real OS state for returning users. Registers via
+  macOS SMAppService. This first-run checkbox IS the post-install prompt.
+- Keychain items can become unreadable after a rebuild re-signs the binary
+  (-25308). App self-recovers: `isCredentialError()` → reopens Settings asking to
+  re-enter. One-time re-entry per rebuild; non-issue for install-once end users.
+
 ## Run notes
 - Run standalone (NOT via flutter run): `flutter build macos --debug` then
   `open build/macos/Build/Products/Debug/macos_layover_email.app`. Under flutter
