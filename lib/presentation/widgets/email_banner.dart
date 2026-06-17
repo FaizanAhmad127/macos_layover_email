@@ -40,7 +40,7 @@ class _EmailBannerState extends State<EmailBanner>
     // Travel across the full screen width — slow, leisurely glide.
     _travelController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 12000),
+      duration: const Duration(milliseconds: 20000),
     );
     _travelX = Tween<double>(begin: -1, end: 1).animate(
       CurvedAnimation(parent: _travelController, curve: Curves.easeInOut),
@@ -89,15 +89,24 @@ class _EmailBannerState extends State<EmailBanner>
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.email,
-              color: Colors.white,
-              size: 34,
-              shadows: _shadows,
-            ),
+        // Subtle translucent pill behind the content so white text stays
+        // legible over light *and* dark windows, while the rest of the strip
+        // is fully transparent.
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.email,
+                color: Colors.white,
+                size: 34,
+                shadows: _shadows,
+              ),
             const SizedBox(width: 14),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
@@ -131,20 +140,21 @@ class _EmailBannerState extends State<EmailBanner>
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            // Close / cancel button — the only way to remove the banner.
-            IconButton(
-              onPressed: _dismiss,
-              tooltip: 'Dismiss',
-              splashRadius: 18,
-              icon: const Icon(
-                Icons.cancel,
-                color: Colors.white,
-                size: 24,
-                shadows: _shadows,
+              const SizedBox(width: 10),
+              // Close / cancel button — the only way to remove the banner.
+              IconButton(
+                onPressed: _dismiss,
+                tooltip: 'Dismiss',
+                splashRadius: 18,
+                icon: const Icon(
+                  Icons.cancel,
+                  color: Colors.white,
+                  size: 24,
+                  shadows: _shadows,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
