@@ -162,7 +162,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-class _FormField extends StatelessWidget {
+class _FormField extends StatefulWidget {
   const _FormField({
     required this.controller,
     required this.label,
@@ -173,7 +173,16 @@ class _FormField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
+
+  /// When true the field starts obscured and shows a show/hide eye toggle.
   final bool obscure;
+
+  @override
+  State<_FormField> createState() => _FormFieldState();
+}
+
+class _FormFieldState extends State<_FormField> {
+  late bool _obscured = widget.obscure;
 
   @override
   Widget build(BuildContext context) {
@@ -181,19 +190,31 @@ class _FormField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          widget.label,
           style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12),
         ),
         const SizedBox(height: 4),
         TextField(
-          controller: controller,
-          obscureText: obscure,
+          controller: widget.controller,
+          obscureText: _obscured,
           style: const TextStyle(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: widget.hint,
             hintStyle: const TextStyle(color: Color(0xFF555555)),
             filled: true,
             fillColor: const Color(0xFF2A2A2A),
+            suffixIcon: widget.obscure
+                ? IconButton(
+                    splashRadius: 18,
+                    tooltip: _obscured ? 'Show password' : 'Hide password',
+                    icon: Icon(
+                      _obscured ? Icons.visibility_off : Icons.visibility,
+                      color: const Color(0xFF999999),
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _obscured = !_obscured),
+                  )
+                : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
               borderSide: BorderSide.none,

@@ -124,6 +124,52 @@ void main() {
     expect(find.text('Keychain denied'), findsOneWidget);
   });
 
+  testWidgets('password field starts obscured with a show toggle',
+      (tester) async {
+    await tester.pumpWidget(buildSubject());
+
+    // Obscured initially → "show" icon is visible
+    expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+    expect(find.byIcon(Icons.visibility), findsNothing);
+
+    final field = tester.widget<TextField>(
+      find.widgetWithText(TextField, '16-character app password'),
+    );
+    expect(field.obscureText, isTrue);
+  });
+
+  testWidgets('tapping the eye toggle reveals and re-hides the password',
+      (tester) async {
+    await tester.pumpWidget(buildSubject());
+
+    // Reveal
+    await tester.tap(find.byIcon(Icons.visibility_off));
+    await tester.pump();
+
+    expect(find.byIcon(Icons.visibility), findsOneWidget);
+    var field = tester.widget<TextField>(
+      find.widgetWithText(TextField, '16-character app password'),
+    );
+    expect(field.obscureText, isFalse);
+
+    // Hide again
+    await tester.tap(find.byIcon(Icons.visibility));
+    await tester.pump();
+
+    expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+    field = tester.widget<TextField>(
+      find.widgetWithText(TextField, '16-character app password'),
+    );
+    expect(field.obscureText, isTrue);
+  });
+
+  testWidgets('email field has no password toggle', (tester) async {
+    await tester.pumpWidget(buildSubject());
+
+    // Only the password field shows an eye icon — exactly one in the screen
+    expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+  });
+
   testWidgets('displays errorMessage as an error when provided',
       (tester) async {
     await tester.pumpWidget(buildSubject(
