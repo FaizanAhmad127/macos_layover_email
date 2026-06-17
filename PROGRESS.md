@@ -1,5 +1,14 @@
 # Progress
 
+## Architecture
+Clean Architecture with Bloc/Cubit:
+- `core/errors/` — Failure hierarchy (NetworkFailure, StorageFailure, CredentialFailure)
+- `domain/` — pure Dart: Email + Credentials entities, repository interfaces, 4 use cases
+- `data/` — EmailModel/CredentialsModel, ImapDataSource, CredentialDataSource, repository impls
+- `presentation/cubits/` — EmailMonitorCubit (sealed states) + CredentialsCubit (sealed states)
+- `injection/` — GetIt dependency injection container
+SOLID: DI via constructor injection, abstractions for all data sources + repositories, single-responsibility per class
+
 ## Completed
 - Flutter project initialized (Flutter 3.44.1, macOS only)
 - Entitlements: network client + keychain (Debug + Release)
@@ -8,18 +17,17 @@
 - VS Code: format-on-save, Dart formatter, removed FVM SDK path
 - Git repo initialized, initial commit on `main`
 - GitHub MCP configured in ~/.claude/mcp.json
-- Packages added: `window_manager ^0.3.9`, `flutter_secure_storage ^9.2.4`, `enough_mail ^2.1.7`
+- Packages added: `window_manager ^0.3.9`, `flutter_secure_storage ^9.2.4`, `enough_mail ^2.1.7`, `flutter_bloc ^8.1`, `equatable ^2.0.5`, `get_it ^7.6`
 - `MainFlutterWindow.swift` updated for window_manager (hiddenWindowAtLaunch)
-- `lib/services/credential_service.dart` — Keychain read/write via flutter_secure_storage
-- `lib/services/imap_service.dart` — Gmail IMAP using MailClient.fromManualSettings + MailLoadEvent
-- `lib/main.dart` — background agent: hides window, loads credentials, starts IMAP listener
+- Refactored to clean architecture + Bloc/Cubit (deleted old lib/services/)
+- `EmailMonitorCubit` — sealed states: Initial, Connecting, Listening, NewEmail, CredentialsMissing, Error
+- `CredentialsCubit` — sealed states: Initial, Loaded, Missing, Saved, Cleared, Error
+- GetIt DI wires all layers; `main.dart` is now a pure StatelessWidget
 
 ## Current state
-App is a background agent that connects to Gmail via IMAP IDLE on launch (if credentials exist).
-New email subjects are emitted on a stream. No banner UI yet — subject printed to debug console.
-No credential entry UI yet — credentials must be seeded manually via CredentialService.save().
+Background agent with full clean architecture. EmailMonitorCubit starts on launch, connects to Gmail IMAP IDLE, emits EmailMonitorNewEmail state when mail arrives. Debug prints subject to console. No banner UI yet.
 
 ## Next
 1. Overlay banner widget (pink waving flag + subject text, slide-in left→right animation)
-2. Wire `_imap.onNewEmail` → show banner window via window_manager
+2. Wire `EmailMonitorNewEmail` state → show banner window via window_manager
 3. Settings UI for Gmail credentials entry (email + app password → saved to Keychain)

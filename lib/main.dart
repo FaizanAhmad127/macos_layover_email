@@ -1,62 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:window_manager/window_manager.dart';
-import 'services/credential_service.dart';
-import 'services/imap_service.dart';
+
+import 'injection/injection_container.dart';
+import 'presentation/cubits/credentials/credentials_cubit.dart';
+import 'presentation/cubits/email_monitor/email_monitor_cubit.dart';
+import 'presentation/cubits/email_monitor/email_monitor_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
-
-  // Hide the default Flutter window — this app runs as a background agent.
-  // The overlay banner will be shown in a separate floating window.
   await windowManager.hide();
+
+  initDependencies();
 
   runApp(const App());
 }
 
-class App extends StatefulWidget {
+class App extends StatelessWidget {
   const App({super.key});
 
   @override
-  State<App> createState() => _AppState();
-}
-
-class _AppState extends State<App> {
-  final _imap = ImapService();
-
-  @override
-  void initState() {
-    super.initState();
-    _startListening();
-  }
-
-  Future<void> _startListening() async {
-    final creds = await CredentialService.load();
-    if (creds == null) {
-      debugPrint('App: no credentials stored — banner will not appear');
-      return;
-    }
-
-    _imap.onNewEmail.listen((subject) {
-      debugPrint('App: new email received — "$subject"');
-      // TODO: show banner overlay
-    });
-
-    await _imap.start(creds.email, creds.password);
-  }
-
-  @override
-  void dispose() {
-    _imap.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // No visible UI — app lives entirely in the background.
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: SizedBox.shrink(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => sl<EmailMonitorCubit>()..start(),
+        ),
+        BlocProvider(
+          create: (_) => sl<CredentialsCubit>()..load(),
+        ),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: BlocListener<EmailMonitorCubit, EmailMonitorState>(
+          listener: (context, state) {
+            switch (state) {
+              case EmailMonitorNewEmail(:final email):
+                debugPrint('New email: "${email.subject}" from ${email.from}');
+                // TODO: show banner overlay
+              case EmailMonitorCredentialsMissing():
+                debugPrint('No credentials stored — set them via CredentialsCubit.save()');
+              case EmailMonitorError(:final message):
+                debugPrint('IMAP error: $message');
+              default:
+                break;
+            }
+          },
+          child: const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 }
