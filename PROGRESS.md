@@ -52,9 +52,20 @@ SOLID: DI via constructor injection, abstractions for all data sources + reposit
 ## Verified live
 - App launches, settings window opens (420×320, centered) when no credentials stored
 - No RenderFlex overflow
+- Signed with Apple Development cert (Team NDUP44J95M); keychain group resolves to `NDUP44J95M.com.faizan.macosLayoverEmail`
+
+## Keychain signing — IMPORTANT
+A sandboxed macOS app REQUIRES `keychain-access-groups` to touch the Keychain, and that
+entitlement must be signed with a development cert (not ad-hoc). Without it,
+flutter_secure_storage throws `-34018 errSecMissingEntitlement` at save time.
+- Entitlements declare `$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)`
+- Runner configs set `CODE_SIGN_IDENTITY = "Apple Development"` + `DEVELOPMENT_TEAM = NDUP44J95M`
+- After a clean / fresh clone, the FIRST build must generate the provisioning profile:
+  `xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Debug -allowProvisioningUpdates build`
+  Then `flutter run -d macos` reuses it. (flutter run alone can't create the profile.)
 
 ## Still needs a live smoke test (with real Gmail app password)
-- Keychain save/load round-trip
+- Keychain save/load round-trip — re-test Save after the -34018 fix
 - IMAP IDLE connection to Gmail
 - Actual banner slide-in on a real incoming email
 - Tray ✉️ menu (Settings / Quit)
