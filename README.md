@@ -108,6 +108,12 @@ window disappears and the agent connects to Gmail.
 Look for the **✉️ icon in your menu bar** — click it for **Settings** or **Quit**
 at any time.
 
+### Confirm it works
+Once connected, **send yourself a test email**. Within a few seconds a banner
+should slide across the top of your screen — a waving 🚩 flag + the subject —
+then auto-dismiss after 5 seconds. That's the full pipeline working. (IMAP IDLE
+notifies on *newly arriving* mail, not existing unread messages.)
+
 ### Developing with hot reload
 `flutter run -d macos` works for active development, but note: while attached to
 the debugger, rapid window resizes can drop the VM-service connection

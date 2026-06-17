@@ -64,18 +64,21 @@ flutter_secure_storage throws `-34018 errSecMissingEntitlement` at save time.
   `xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Debug -allowProvisioningUpdates build`
   Then `flutter run -d macos` reuses it. (flutter run alone can't create the profile.)
 
-## Confirmed working live
-- Keychain save/load round-trip ✅ (creds saved one session, loaded the next; -34018 gone)
-- IMAP connection reaches Gmail ✅ (server responds; rejects only bad creds)
-- Auth-failure UX ✅ (bad creds → Settings reopens with a red error, email pre-filled)
-- `Resize timed out` in logs is a benign window_manager warning during banner↔settings resize; the resize still applies, app keeps running.
+## END-TO-END VERIFIED LIVE ✅ (2026-06-17)
+- Keychain save/load round-trip ✅ (-34018 fixed via dev signing + keychain group)
+- IMAP IDLE connect + INBOX select ✅ (single established :993 connection, no idleStart error)
+- Real incoming email → banner fires ✅ (log: "New email received — showing banner")
+- App stays alive as background agent after banner + after window hide ✅
+- Auth-failure UX ✅ (bad creds → Settings reopens with red error, email pre-filled)
+- Password show/hide toggle ✅
 
-## Still needs a live smoke test (with a VALID Gmail app password)
-- Successful IMAP IDLE connect + Listening state
-- Actual banner slide-in on a real incoming email
-- Tray ✉️ menu (Settings / Quit)
-- NOTE: the credentials tried so far were rejected by Gmail (AUTHENTICATIONFAILED).
-  Need a real 16-char App Password (2-Step Verification on, IMAP enabled, no spaces).
+## Run notes
+- Run standalone (NOT via flutter run): `flutter build macos --debug` then
+  `open build/macos/Build/Products/Debug/macos_layover_email.app`. Under flutter
+  run the debugger heartbeat can drop during window resizes ("Lost connection").
+- `Resize timed out` and `Failed to foreground app` log lines are benign.
+- To watch logs of a standalone run, launch the binary directly:
+  `.../macos_layover_email.app/Contents/MacOS/macos_layover_email` (stdout shows flutter: prints).
 
 ## Next / Polish
 - Replace ✉️ emoji tray title with a proper PNG template image for native menu bar look
