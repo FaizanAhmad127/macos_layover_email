@@ -19,8 +19,13 @@ import 'presentation/widgets/banner_controller.dart';
 import 'presentation/widgets/email_banner.dart';
 
 // Module-level state shared between main() setup and App widget callbacks
+const double _bannerHeight = 120;
 late final double _screenWidth;
+late final double _screenHeight;
 late final BannerController _bannerController;
+
+// Banner spans the full screen width, vertically centered.
+Offset get _bannerPosition => Offset(0, (_screenHeight - _bannerHeight) / 2);
 
 // (isSettingsVisible, initialEmail, errorMessage) — drives the window content
 final _settingsState =
@@ -37,9 +42,10 @@ Future<void> _showSettings({String? error}) async {
   }
   _bannerController.settingsOpen = true;
   // Resize the window to settings dimensions BEFORE swapping in the settings
-  // widget, so it never lays out at banner size (full-width × 80px).
+  // widget, so it never lays out at banner size. Tall enough to fit all
+  // fields + buttons without scrolling.
   await windowManager.setIgnoreMouseEvents(false);
-  await windowManager.setSize(const Size(420, 320));
+  await windowManager.setSize(const Size(420, 470));
   await windowManager.center();
   _settingsState.value = (true, email, error);
   await windowManager.show();
@@ -50,8 +56,8 @@ Future<void> _hideToBanner() async {
   _settingsState.value = (false, null, null);
   _bannerController.settingsOpen = false;
   await windowManager.hide();
-  await windowManager.setSize(Size(_screenWidth, 80));
-  await windowManager.setPosition(Offset.zero);
+  await windowManager.setSize(Size(_screenWidth, _bannerHeight));
+  await windowManager.setPosition(_bannerPosition);
   await windowManager.setIgnoreMouseEvents(true);
 }
 
@@ -68,14 +74,14 @@ void main() async {
 
   final display =
       WidgetsBinding.instance.platformDispatcher.displays.firstOrNull;
-  _screenWidth = display != null
-      ? display.size.width / display.devicePixelRatio
-      : 1920.0;
+  final dpr = display?.devicePixelRatio ?? 1.0;
+  _screenWidth = display != null ? display.size.width / dpr : 1920.0;
+  _screenHeight = display != null ? display.size.height / dpr : 1080.0;
 
-  // Configure window for banner mode (initial state)
+  // Configure window for banner mode (full-width strip, vertically centered)
   await windowManager.waitUntilReadyToShow(
     WindowOptions(
-      size: Size(_screenWidth, 80),
+      size: Size(_screenWidth, _bannerHeight),
       backgroundColor: Colors.transparent,
       skipTaskbar: true,
       titleBarStyle: TitleBarStyle.hidden,
@@ -83,8 +89,9 @@ void main() async {
       alwaysOnTop: true,
     ),
     () async {
-      await windowManager.setPosition(Offset.zero);
+      await windowManager.setPosition(_bannerPosition);
       await windowManager.setHasShadow(false);
+      // Click-through while idle; EmailBanner makes it interactive when shown.
       await windowManager.setIgnoreMouseEvents(true);
     },
   );
