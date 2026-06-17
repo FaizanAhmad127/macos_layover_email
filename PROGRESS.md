@@ -64,11 +64,18 @@ flutter_secure_storage throws `-34018 errSecMissingEntitlement` at save time.
   `xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Debug -allowProvisioningUpdates build`
   Then `flutter run -d macos` reuses it. (flutter run alone can't create the profile.)
 
-## Still needs a live smoke test (with real Gmail app password)
-- Keychain save/load round-trip — re-test Save after the -34018 fix
-- IMAP IDLE connection to Gmail
+## Confirmed working live
+- Keychain save/load round-trip ✅ (creds saved one session, loaded the next; -34018 gone)
+- IMAP connection reaches Gmail ✅ (server responds; rejects only bad creds)
+- Auth-failure UX ✅ (bad creds → Settings reopens with a red error, email pre-filled)
+- `Resize timed out` in logs is a benign window_manager warning during banner↔settings resize; the resize still applies, app keeps running.
+
+## Still needs a live smoke test (with a VALID Gmail app password)
+- Successful IMAP IDLE connect + Listening state
 - Actual banner slide-in on a real incoming email
 - Tray ✉️ menu (Settings / Quit)
+- NOTE: the credentials tried so far were rejected by Gmail (AUTHENTICATIONFAILED).
+  Need a real 16-char App Password (2-Step Verification on, IMAP enabled, no spaces).
 
 ## Next / Polish
 - Replace ✉️ emoji tray title with a proper PNG template image for native menu bar look
