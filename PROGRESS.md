@@ -24,8 +24,14 @@ SOLID: DI via constructor injection, abstractions for all data sources + reposit
 - `CredentialsCubit` — sealed states: Initial, Loaded, Missing, Saved, Cleared, Error
 - GetIt DI wires all layers; `main.dart` is now a pure StatelessWidget
 
+## Tests — 33/33 passing ✅
+- `test/domain/usecases/` — 9/9: LoadCredentials, SaveCredentials, ClearCredentials, WatchNewEmails
+- `test/data/repositories/` — 10/10: CredentialRepositoryImpl, EmailRepositoryImpl
+- `test/presentation/cubits/` — 14/14: EmailMonitorCubit, CredentialsCubit
+- Going forward: tests written before each commit for every new feature
+
 ## Current state
-Background agent with full clean architecture. EmailMonitorCubit starts on launch, connects to Gmail IMAP IDLE, emits EmailMonitorNewEmail state when mail arrives. Debug prints subject to console. No banner UI yet.
+Background agent with full clean architecture and passing test suite. EmailMonitorCubit starts on launch, connects to Gmail IMAP IDLE, emits EmailMonitorNewEmail state when mail arrives. Debug prints subject to console. No banner UI yet.
 
 ## Next
 1. Overlay banner widget (pink waving flag + subject text, slide-in left→right animation)
