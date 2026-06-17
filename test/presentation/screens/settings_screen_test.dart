@@ -31,12 +31,15 @@ void main() {
     when(() => mockCubit.state).thenReturn(const CredentialsInitial());
   });
 
-  Widget buildSubject({String? initialEmail}) {
+  Widget buildSubject({String? initialEmail, String? errorMessage}) {
     return MaterialApp(
       home: BlocProvider<CredentialsCubit>.value(
         value: mockCubit,
         child: Scaffold(
-          body: SettingsScreen(initialEmail: initialEmail),
+          body: SettingsScreen(
+            initialEmail: initialEmail,
+            errorMessage: errorMessage,
+          ),
         ),
       ),
     );
@@ -119,6 +122,15 @@ void main() {
     await tester.pump();
 
     expect(find.text('Keychain denied'), findsOneWidget);
+  });
+
+  testWidgets('displays errorMessage as an error when provided',
+      (tester) async {
+    await tester.pumpWidget(buildSubject(
+      errorMessage: 'Gmail rejected these credentials.',
+    ));
+
+    expect(find.text('Gmail rejected these credentials.'), findsOneWidget);
   });
 
   testWidgets('clears fields on CredentialsCleared state', (tester) async {

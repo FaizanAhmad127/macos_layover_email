@@ -5,9 +5,12 @@ import '../cubits/credentials/credentials_cubit.dart';
 import '../cubits/credentials/credentials_state.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, this.initialEmail});
+  const SettingsScreen({super.key, this.initialEmail, this.errorMessage});
 
   final String? initialEmail;
+
+  /// Pre-displayed error (e.g. shown when reopened after an auth failure).
+  final String? errorMessage;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -24,6 +27,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _emailCtrl = TextEditingController(text: widget.initialEmail ?? '');
     _passCtrl = TextEditingController();
+    if (widget.errorMessage != null) {
+      _statusMessage = widget.errorMessage;
+      _isError = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(SettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Surface a new error if the screen is reused while already mounted.
+    if (widget.errorMessage != null &&
+        widget.errorMessage != oldWidget.errorMessage) {
+      setState(() {
+        _statusMessage = widget.errorMessage;
+        _isError = true;
+      });
+    }
   }
 
   @override

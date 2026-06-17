@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/imap_error.dart';
+import 'domain/usecases/load_credentials.dart';
 import 'injection/injection_container.dart';
 import 'presentation/cubits/credentials/credentials_cubit.dart';
 import 'presentation/cubits/credentials/credentials_state.dart';
@@ -18,26 +20,32 @@ import 'presentation/widgets/email_banner.dart';
 late final double _screenWidth;
 late final BannerController _bannerController;
 
-// (isSettingsVisible, initialEmail) — drives which widget the window shows
-final _settingsState = ValueNotifier<(bool, String?)>((false, null));
+// (isSettingsVisible, initialEmail, errorMessage) — drives the window content
+final _settingsState =
+    ValueNotifier<(bool, String?, String?)>((false, null, null));
 
-Future<void> _showSettings() async {
-  final credState = sl<CredentialsCubit>().state;
-  final email =
-      credState is CredentialsLoaded ? credState.credentials.email : null;
+Future<void> _showSettings({String? error}) async {
+  // Read the stored email straight from the Keychain so it pre-fills
+  // regardless of the CredentialsCubit's current state (Saved/Missing/Loaded).
+  String? email;
+  try {
+    email = (await sl<LoadCredentials>()())?.email;
+  } catch (_) {
+    email = null;
+  }
   _bannerController.settingsOpen = true;
   // Resize the window to settings dimensions BEFORE swapping in the settings
   // widget, so it never lays out at banner size (full-width × 80px).
   await windowManager.setIgnoreMouseEvents(false);
   await windowManager.setSize(const Size(420, 320));
   await windowManager.center();
-  _settingsState.value = (true, email);
+  _settingsState.value = (true, email, error);
   await windowManager.show();
   await windowManager.focus();
 }
 
 Future<void> _hideToBanner() async {
-  _settingsState.value = (false, null);
+  _settingsState.value = (false, null, null);
   _bannerController.settingsOpen = false;
   await windowManager.hide();
   await windowManager.setSize(Size(_screenWidth, 80));
@@ -99,7 +107,7 @@ class App extends StatelessWidget {
   });
 
   final BannerController bannerController;
-  final ValueNotifier<(bool, String?)> settingsState;
+  final ValueNotifier<(bool, String?, String?)> settingsState;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +130,15 @@ class App extends StatelessWidget {
                     case EmailMonitorCredentialsMissing():
                       _showSettings();
                     case EmailMonitorError(:final message):
-                      debugPrint('IMAP error: $message');
+                      if (isAuthFailure(message)) {
+                        _showSettings(
+                          error: 'Gmail rejected these credentials. Use a '
+                              '16-character App Password (requires 2-Step '
+                              'Verification), entered without spaces.',
+                        );
+                      } else {
+                        debugPrint('IMAP error: $message');
+                      }
                     default:
                       break;
                   }
@@ -143,12 +159,12 @@ class App extends StatelessWidget {
                 },
               ),
             ],
-            child: ValueListenableBuilder<(bool, String?)>(
+            child: ValueListenableBuilder<(bool, String?, String?)>(
               valueListenable: settingsState,
               builder: (ctx, state, _) {
-                final (isSettings, email) = state;
+                final (isSettings, email, error) = state;
                 return isSettings
-                    ? SettingsScreen(initialEmail: email)
+                    ? SettingsScreen(initialEmail: email, errorMessage: error)
                     : EmailBanner(controller: bannerController);
               },
             ),
