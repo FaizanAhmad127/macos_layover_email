@@ -38,10 +38,10 @@ class _EmailBannerState extends State<EmailBanner>
   void initState() {
     super.initState();
 
-    // Travel across the full screen width.
+    // Travel across the full screen width (slow, leisurely glide).
     _travelController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3500),
+      duration: const Duration(milliseconds: 7000),
     );
     // Flag waves back and forth continuously.
     _flagController = AnimationController(
