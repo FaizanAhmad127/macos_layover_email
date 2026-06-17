@@ -35,4 +35,24 @@ void main() {
       sut.show(s);
     }
   });
+
+  test('show is suppressed when settingsOpen is true', () async {
+    sut.settingsOpen = true;
+    final received = <String>[];
+    sut.stream.listen(received.add);
+
+    sut.show('Should be blocked');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(received, isEmpty);
+  });
+
+  test('show resumes after settingsOpen is set back to false', () async {
+    sut.settingsOpen = true;
+    sut.show('Blocked');
+
+    sut.settingsOpen = false;
+    expectLater(sut.stream, emits('Visible'));
+    sut.show('Visible');
+  });
 }

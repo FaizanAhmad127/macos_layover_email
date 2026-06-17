@@ -38,6 +38,7 @@ dependencies:
   flutter_bloc: ^8.1.0
   equatable: ^2.0.5
   get_it: ^7.6.0
+  tray_manager: ^0.5.3
 
 dev_dependencies:
   flutter_test:

@@ -24,24 +24,26 @@ SOLID: DI via constructor injection, abstractions for all data sources + reposit
 - `CredentialsCubit` — sealed states: Initial, Loaded, Missing, Saved, Cleared, Error
 - GetIt DI wires all layers; `main.dart` is now a pure StatelessWidget
 
-## Tests — 36/36 passing ✅
+## Tests — 46/46 passing ✅
 - `test/domain/usecases/` — 9/9: LoadCredentials, SaveCredentials, ClearCredentials, WatchNewEmails
 - `test/data/repositories/` — 10/10: CredentialRepositoryImpl, EmailRepositoryImpl
 - `test/presentation/cubits/` — 14/14: EmailMonitorCubit, CredentialsCubit
-- `test/presentation/widgets/` — 3/3: BannerController
+- `test/presentation/widgets/` — 5/5: BannerController (inc. settingsOpen guard)
+- `test/presentation/screens/` — 8/8: SettingsScreen widget tests
 - Going forward: tests written before each commit for every new feature
 
 ## Current state
-Background agent with overlay banner. On new email, a dark semi-transparent banner slides in from the left across the top of the screen (full width, 80px tall) showing a waving 🚩 flag + email subject. Auto-dismisses after 5 seconds, slides back out. Window is transparent and click-through when banner is not showing.
+**Feature-complete v1.** Background agent monitors Gmail via IMAP IDLE. On new email: dark banner slides in from left (full-width, 80px, waving 🚩 flag + subject), auto-dismisses after 5s. Menu bar ✉️ icon → Settings (or auto-opens on first launch). Settings window (420×320): enter Gmail address + app password → saved to Keychain. Clear button wipes credentials. Window switches between banner mode and settings mode via window_manager resize.
 
-## Next
+## Packages
+- `window_manager ^0.3.9` — overlay window management
+- `flutter_secure_storage ^9.2.4` — Keychain credential storage
+- `enough_mail ^2.1.7` — IMAP IDLE
+- `flutter_bloc ^8.1` + `equatable ^2.0.5` — state management
+- `get_it ^7.6` — DI
+- `tray_manager ^0.5.3` — macOS menu bar icon
 
-### ~~1. Overlay banner widget~~ ✅ Done
-### ~~2. Wire EmailMonitorNewEmail → banner~~ ✅ Done
-
-### 3. Settings UI for credentials
-- Triggered by a menu bar icon or a keyboard shortcut (TBD — decide before implementing)
-- Form: two fields — Gmail address + App Password (obscured)
-- On save: calls `CredentialsCubit.save()` → stored in Keychain; on success show a brief confirmation
-- On clear: calls `CredentialsCubit.clear()`, `EmailMonitorCubit.restart()` re-connects
-- Widget lives at `lib/presentation/screens/settings_screen.dart`
+## Next / Polish
+- Replace ✉️ emoji tray title with a proper PNG template image for native menu bar look
+- Add error recovery UI: banner or tray tooltip when IMAP reconnect fails repeatedly
+- Consider queuing emails that arrive while settings is open (currently suppressed)
