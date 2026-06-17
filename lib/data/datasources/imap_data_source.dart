@@ -39,6 +39,9 @@ class ImapDataSourceImpl implements ImapDataSource {
       });
 
       await _mailClient!.connect();
+      // Must select a mailbox before IDLE/polling — otherwise enough_mail
+      // throws `idleStart(): no mailbox selected` and no new-mail events fire.
+      await _mailClient!.selectInbox();
       // Uses IMAP IDLE when supported (Gmail does); polls every minute otherwise.
       await _mailClient!.startPolling(const Duration(minutes: 1));
     } catch (e) {

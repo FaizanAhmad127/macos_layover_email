@@ -126,6 +126,8 @@ class App extends StatelessWidget {
                 listener: (ctx, state) {
                   switch (state) {
                     case EmailMonitorNewEmail(:final email):
+                      // Privacy-safe: log the event, never the subject/sender.
+                      debugPrint('New email received — showing banner');
                       bannerController.show(email.subject);
                     case EmailMonitorCredentialsMissing():
                       _showSettings();
