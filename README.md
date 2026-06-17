@@ -1,13 +1,18 @@
 # macos_layover_email
 
 A macOS **background agent** that watches your Gmail inbox over IMAP IDLE and, when
-a new email arrives, slides a floating banner across the top of the screen —
-a waving 🚩 pink flag followed by the email subject. It works with no app windows
-open and shows above all other apps.
+a new email arrives, shows a floating banner — a waving 🚩 pink flag followed by
+the email subject — that travels **left→right across the middle of the screen**
+and parks at the right edge until you dismiss it with the ✕ button. It works with
+no app windows open and shows above all other apps.
 
 - No Dock icon (runs as a menu-bar / background agent via `LSUIElement`)
 - Credentials stored only in the macOS **Keychain** (never on disk or in git)
 - macOS only
+
+> **This repo is meant to be cloned and run per-person.** Each user builds it
+> with their own free Apple ID and enters their own Gmail credentials — nothing
+> sensitive is shared. Follow the steps below.
 
 ---
 
@@ -102,7 +107,8 @@ open build/macos/Build/Products/Debug/macos_layover_email.app
 > After the profile exists, `flutter build macos --debug` works on its own.
 
 **On first launch** (no credentials saved) a **Settings window** opens
-automatically. Enter your Gmail address + App Password and click **Save**. The
+automatically. Enter your Gmail address + App Password (use the 👁 toggle to check
+it), leave **"Start automatically at login"** ticked, and click **Save**. The
 window disappears and the agent connects to Gmail.
 
 Look for the **✉️ icon in your menu bar** — click it for **Settings** or **Quit**
@@ -110,19 +116,21 @@ at any time.
 
 ### Confirm it works
 Once connected, **send yourself a test email**. Within a few seconds a banner
-should slide across the top of your screen — a waving 🚩 flag + the subject —
-then auto-dismiss after 5 seconds. That's the full pipeline working. (IMAP IDLE
-notifies on *newly arriving* mail, not existing unread messages.)
+travels **left→right across the middle of your screen** — a waving 🚩 flag + the
+subject — and parks at the right edge. It stays there until you click the **✕** to
+dismiss it. That's the full pipeline working. (IMAP IDLE notifies on *newly
+arriving* mail, not existing unread messages.)
+
+### Start at login
+There's a **"Start automatically at login"** checkbox in Settings (on by default).
+It registers the app via macOS SMAppService — no manual Login Items step needed.
+You can verify/toggle it later in System Settings ▸ General ▸ Login Items.
 
 ### Developing with hot reload
 `flutter run -d macos` works for active development, but note: while attached to
 the debugger, rapid window resizes can drop the VM-service connection
 ("Lost connection to device"). For testing real behavior, prefer the standalone
 `open` method above.
-
-### Run at login (optional)
-To have it start automatically: System Settings ▸ General ▸ Login Items ▸ add the
-built `.app`.
 
 ---
 
@@ -132,7 +140,7 @@ Clean Architecture + Bloc/Cubit, dependency-injected with GetIt:
 
 ```
 lib/
-├── core/            Failure types, IMAP error classification
+├── core/            Failure types, IMAP error classification, StartupService
 ├── domain/          Entities (Email, Credentials), repo interfaces, use cases
 ├── data/            Models, IMAP + Keychain data sources, repo implementations
 ├── presentation/
@@ -144,17 +152,21 @@ lib/
 
 - **Email** — `enough_mail` IMAP IDLE to `imap.gmail.com:993` (SSL).
 - **Overlay** — `window_manager` keeps one always-on-top window that switches
-  between *banner mode* (full-width, 80px, click-through, hidden when idle) and
-  *settings mode* (420×320, centered, interactive).
+  between *banner mode* (full-width strip, vertically centered, transparent; the
+  content travels left→right and parks at the right with a ✕ close button; the
+  window is interactive while a banner shows, click-through and hidden when idle)
+  and *settings mode* (420×470, centered, interactive).
 - **Credentials** — `flutter_secure_storage` → macOS Keychain.
 - **Tray** — `tray_manager` for the menu-bar ✉️ icon.
+- **Login at startup** — `launch_at_startup` (macOS SMAppService), wrapped by
+  `StartupService` and toggled from the Settings checkbox.
 
 ---
 
 ## 6. Tests
 
 ```bash
-flutter test          # 52 tests
+flutter test          # 66 tests
 flutter analyze       # should report no issues
 ```
 
