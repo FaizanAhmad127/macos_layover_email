@@ -78,9 +78,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         color: const Color(0xFF1E1E1E),
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             const Text(
               'Gmail Settings',
               style: TextStyle(
@@ -122,17 +124,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            if (_statusMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _statusMessage!,
-                style: TextStyle(
-                  color: _isError ? Colors.red[300] : Colors.green[300],
-                  fontSize: 12,
+              if (_statusMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _statusMessage!,
+                  style: TextStyle(
+                    color: _isError ? Colors.red[300] : Colors.green[300],
+                    fontSize: 12,
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

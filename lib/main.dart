@@ -25,12 +25,15 @@ Future<void> _showSettings() async {
   final credState = sl<CredentialsCubit>().state;
   final email =
       credState is CredentialsLoaded ? credState.credentials.email : null;
-  _settingsState.value = (true, email);
   _bannerController.settingsOpen = true;
+  // Resize the window to settings dimensions BEFORE swapping in the settings
+  // widget, so it never lays out at banner size (full-width × 80px).
   await windowManager.setIgnoreMouseEvents(false);
   await windowManager.setSize(const Size(420, 320));
   await windowManager.center();
+  _settingsState.value = (true, email);
   await windowManager.show();
+  await windowManager.focus();
 }
 
 Future<void> _hideToBanner() async {

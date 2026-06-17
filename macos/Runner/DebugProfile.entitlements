@@ -8,9 +8,7 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
-	<key>keychain-access-groups</key>
-	<array>
-		<string>$(AppIdentifierPrefix)com.faizan.macos-layover-email</string>
-	</array>
+	<key>com.apple.security.network.server</key>
+	<true/>
 </dict>
 </plist>
