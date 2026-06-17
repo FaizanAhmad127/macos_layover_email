@@ -24,28 +24,20 @@ SOLID: DI via constructor injection, abstractions for all data sources + reposit
 - `CredentialsCubit` — sealed states: Initial, Loaded, Missing, Saved, Cleared, Error
 - GetIt DI wires all layers; `main.dart` is now a pure StatelessWidget
 
-## Tests — 33/33 passing ✅
+## Tests — 36/36 passing ✅
 - `test/domain/usecases/` — 9/9: LoadCredentials, SaveCredentials, ClearCredentials, WatchNewEmails
 - `test/data/repositories/` — 10/10: CredentialRepositoryImpl, EmailRepositoryImpl
 - `test/presentation/cubits/` — 14/14: EmailMonitorCubit, CredentialsCubit
+- `test/presentation/widgets/` — 3/3: BannerController
 - Going forward: tests written before each commit for every new feature
 
 ## Current state
-Background agent with full clean architecture and passing test suite. EmailMonitorCubit starts on launch, connects to Gmail IMAP IDLE, emits EmailMonitorNewEmail state when mail arrives. Debug prints subject to console. No banner UI yet.
+Background agent with overlay banner. On new email, a dark semi-transparent banner slides in from the left across the top of the screen (full width, 80px tall) showing a waving 🚩 flag + email subject. Auto-dismisses after 5 seconds, slides back out. Window is transparent and click-through when banner is not showing.
 
 ## Next
 
-### 1. Overlay banner widget
-- Separate floating `NSWindow` opened via `window_manager` at `NSWindowLevel.floating + 1` (above everything)
-- Position: top-right of primary screen, full width, ~80px tall
-- Content (left→right): animated waving pink flag (emoji `🚩` with a subtle rotation loop) + email subject in white bold text on a dark semi-transparent background
-- Animation: window slides in from the left edge of the screen (off-screen → on-screen) over ~400ms using a `CurvedAnimation`
-- Auto-dismiss: stays visible for 5 seconds, then slides back out to the left and the window is hidden
-- Widget lives at `lib/presentation/widgets/email_banner.dart`
-
-### 2. Wire EmailMonitorNewEmail → banner
-- In `main.dart` `BlocListener`, on `EmailMonitorNewEmail` state: call a `BannerController` (or direct `window_manager` call) to show the banner window and pass the subject string
-- The banner window is created once at startup (hidden), shown/hidden on demand — do not create a new window per email
+### ~~1. Overlay banner widget~~ ✅ Done
+### ~~2. Wire EmailMonitorNewEmail → banner~~ ✅ Done
 
 ### 3. Settings UI for credentials
 - Triggered by a menu bar icon or a keyboard shortcut (TBD — decide before implementing)
