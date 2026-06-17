@@ -43,6 +43,22 @@ SOLID: DI via constructor injection, abstractions for all data sources + reposit
 - `get_it ^7.6` — DI
 - `tray_manager ^0.5.3` — macOS menu bar icon
 
+## Build & run — working ✅
+- Builds, signs, and launches on macOS (`flutter run -d macos`)
+- Code signing: DEVELOPMENT_TEAM = NDUP44J95M set on all Runner configs
+- Entitlements: removed `keychain-access-groups` (not needed — flutter_secure_storage uses default keychain via accountName; the group required a provisioning profile and blocked debug builds). Added `network.server` to DebugProfile only (Dart VM service / hot reload).
+- `Failed to foreground app; open returned 1` on launch is EXPECTED — benign LSUIElement background-app message, not an error.
+
+## Verified live
+- App launches, settings window opens (420×320, centered) when no credentials stored
+- No RenderFlex overflow
+
+## Still needs a live smoke test (with real Gmail app password)
+- Keychain save/load round-trip
+- IMAP IDLE connection to Gmail
+- Actual banner slide-in on a real incoming email
+- Tray ✉️ menu (Settings / Quit)
+
 ## Next / Polish
 - Replace ✉️ emoji tray title with a proper PNG template image for native menu bar look
 - Add error recovery UI: banner or tray tooltip when IMAP reconnect fails repeatedly
