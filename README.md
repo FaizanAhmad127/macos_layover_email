@@ -28,6 +28,7 @@ auto-dismiss; click ✕ to close it.
 - Flutter 3.44.1 / Dart 3.12.1
 - A Gmail **App Password** (not your normal account password) —
   create one at https://myaccount.google.com/apppasswords
+  And turn ON 2FA
 
 ## Getting started
 
