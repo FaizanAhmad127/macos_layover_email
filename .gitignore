@@ -52,3 +52,6 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 .env
 *.env
 google-services.json
+
+# Claude Code agent worktrees / local state
+.claude/

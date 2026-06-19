@@ -3,9 +3,23 @@ import FlutterMacOS
 
 @main
 class AppDelegate: FlutterAppDelegate {
-  // Background overlay agent: the app hides its only window when idle (banner
-  // mode) and after saving credentials. It must NOT quit when that window
-  // closes/hides — otherwise the agent dies the moment the banner is dismissed.
+  override func applicationWillFinishLaunching(_ notification: Notification) {
+    // Background-agent mode (no Dock icon). This is REQUIRED for the banner to
+    // appear over other apps' full-screen windows — macOS blocks .regular
+    // (Dock-icon) apps from drawing into another app's full-screen Space.
+    // Quit is still available via the menu-bar ✉️ icon and the window's ✕.
+    NSApp.setActivationPolicy(.accessory)
+
+    // ── DOCK ICON (disabled) ──────────────────────────────────────────────
+    // To show a Dock icon again, comment out the .accessory line above and
+    // uncomment the line below. NOTE: with .regular, the banner will NOT
+    // appear over full-screen apps. Also flip `skipTaskbar` back to false in
+    // lib/main.dart.
+    // NSApp.setActivationPolicy(.regular)
+
+    super.applicationWillFinishLaunching(notification)
+  }
+
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
   }

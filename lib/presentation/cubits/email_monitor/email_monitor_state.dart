@@ -13,8 +13,8 @@ final class EmailMonitorInitial extends EmailMonitorState {
   const EmailMonitorInitial();
 }
 
-final class EmailMonitorConnecting extends EmailMonitorState {
-  const EmailMonitorConnecting();
+final class EmailMonitorVerifying extends EmailMonitorState {
+  const EmailMonitorVerifying();
 }
 
 final class EmailMonitorListening extends EmailMonitorState {

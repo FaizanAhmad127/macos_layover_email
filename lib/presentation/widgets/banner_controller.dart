@@ -10,6 +10,11 @@ class BannerController {
   // Set true while the settings window is open to suppress banner pop-ups.
   bool settingsOpen = false;
 
+  /// Screen dimensions used by [EmailBanner] to compute window travel positions.
+  /// Must be set by main.dart before the first email arrives.
+  double screenWidth = 0;
+  double screenHeight = 0;
+
   void show({required String subject, required String from}) {
     if (!settingsOpen) _events.add((subject: subject, from: from));
   }

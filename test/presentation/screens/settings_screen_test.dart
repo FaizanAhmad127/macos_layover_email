@@ -1,67 +1,54 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:macos_layover_email/core/startup_service.dart';
 import 'package:macos_layover_email/domain/entities/credentials.dart';
-import 'package:macos_layover_email/domain/usecases/clear_credentials.dart';
-import 'package:macos_layover_email/domain/usecases/load_credentials.dart';
-import 'package:macos_layover_email/domain/usecases/save_credentials.dart';
-import 'package:macos_layover_email/presentation/cubits/credentials/credentials_cubit.dart';
-import 'package:macos_layover_email/presentation/cubits/credentials/credentials_state.dart';
+import 'package:macos_layover_email/presentation/cubits/email_monitor/email_monitor_cubit.dart';
+import 'package:macos_layover_email/presentation/cubits/email_monitor/email_monitor_state.dart';
 import 'package:macos_layover_email/presentation/screens/settings_screen.dart';
 
-class MockLoadCredentials extends Mock implements LoadCredentials {}
-
-class MockSaveCredentials extends Mock implements SaveCredentials {}
-
-class MockClearCredentials extends Mock implements ClearCredentials {}
-
-class MockCredentialsCubit extends MockCubit<CredentialsState>
-    implements CredentialsCubit {}
-
-class MockStartupService extends Mock implements StartupService {}
+class MockEmailMonitorCubit extends MockCubit<EmailMonitorState>
+    implements EmailMonitorCubit {}
 
 void main() {
-  late MockCredentialsCubit mockCubit;
-  late MockStartupService mockStartup;
+  late MockEmailMonitorCubit mockMonitorCubit;
 
   const tCredentials = Credentials(email: 'test@gmail.com', password: 'pass');
 
   setUp(() {
-    mockCubit = MockCredentialsCubit();
-    when(() => mockCubit.state).thenReturn(const CredentialsInitial());
-    mockStartup = MockStartupService();
-    when(() => mockStartup.isEnabled()).thenAnswer((_) async => false);
-    when(() => mockStartup.enable()).thenAnswer((_) async {});
-    when(() => mockStartup.disable()).thenAnswer((_) async {});
+    mockMonitorCubit = MockEmailMonitorCubit();
+    when(() => mockMonitorCubit.state).thenReturn(const EmailMonitorInitial());
   });
 
   Widget buildSubject({String? initialEmail, String? errorMessage}) {
     return MaterialApp(
-      home: BlocProvider<CredentialsCubit>.value(
-        value: mockCubit,
+      home: BlocProvider<EmailMonitorCubit>.value(
+        value: mockMonitorCubit,
         child: Scaffold(
           body: SettingsScreen(
             initialEmail: initialEmail,
             errorMessage: errorMessage,
-            startupService: mockStartup,
           ),
         ),
       ),
     );
   }
 
-  testWidgets('renders email and password fields', (tester) async {
+  testWidgets('renders email and password fields with Connect button',
+      (tester) async {
     await tester.pumpWidget(buildSubject());
 
     expect(find.text('Gmail Settings'), findsOneWidget);
     expect(find.text('Gmail address'), findsOneWidget);
     expect(find.text('App password'), findsOneWidget);
-    expect(find.text('Save'), findsOneWidget);
-    expect(find.text('Clear'), findsOneWidget);
+    expect(find.text('Connect'), findsOneWidget);
+    expect(find.text('Clear'), findsNothing);
+    expect(find.text('Start automatically at login (recommended)'),
+        findsNothing);
   });
 
   testWidgets('pre-populates email field when initialEmail is provided',
@@ -72,72 +59,87 @@ void main() {
     expect(emailField, findsOneWidget);
   });
 
-  testWidgets('shows validation error when saving with empty fields',
+  testWidgets('shows validation error when connecting with empty fields',
       (tester) async {
     await tester.pumpWidget(buildSubject());
 
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Connect'));
     await tester.pump();
 
     expect(find.text('Email and app password are required.'), findsOneWidget);
   });
 
-  testWidgets('calls cubit.save with entered email and password',
+  testWidgets(
+      'calls emailMonitorCubit.verifyAndStart with entered credentials',
       (tester) async {
-    when(() => mockCubit.save(any(), any())).thenAnswer((_) async {});
+    when(() => mockMonitorCubit.verifyAndStart(any(), any()))
+        .thenAnswer((_) async {});
     await tester.pumpWidget(buildSubject());
 
     await tester.enterText(
         find.widgetWithText(TextField, 'you@gmail.com'), 'me@gmail.com');
     await tester.enterText(
         find.widgetWithText(TextField, '16-character app password'), 'mypass');
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Connect'));
     await tester.pump();
 
-    verify(() => mockCubit.save('me@gmail.com', 'mypass')).called(1);
+    verify(() => mockMonitorCubit.verifyAndStart('me@gmail.com', 'mypass'))
+        .called(1);
   });
 
-  testWidgets('calls cubit.clear when Clear button tapped', (tester) async {
-    when(() => mockCubit.clear()).thenAnswer((_) async {});
-    await tester.pumpWidget(buildSubject());
-
-    await tester.tap(find.text('Clear'));
-    await tester.pump();
-
-    verify(() => mockCubit.clear()).called(1);
-  });
-
-  testWidgets('shows success message on CredentialsSaved state', (tester) async {
+  testWidgets('shows spinner and disables button while verifying',
+      (tester) async {
+    when(() => mockMonitorCubit.verifyAndStart(any(), any()))
+        .thenAnswer((_) async {});
     whenListen(
-      mockCubit,
-      Stream.fromIterable([const CredentialsSaved()]),
-      initialState: const CredentialsInitial(),
+      mockMonitorCubit,
+      Stream.fromIterable([const EmailMonitorVerifying()]),
+      initialState: const EmailMonitorInitial(),
     );
 
     await tester.pumpWidget(buildSubject());
+    await tester.enterText(
+        find.widgetWithText(TextField, 'you@gmail.com'), 'me@gmail.com');
+    await tester.enterText(
+        find.widgetWithText(TextField, '16-character app password'), 'mypass');
+    await tester.tap(find.text('Connect'));
     await tester.pump();
 
-    expect(find.text('Saved — connecting to Gmail…'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    final connectBtn = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(connectBtn.onPressed, isNull);
   });
 
-  testWidgets('shows error message on CredentialsError state', (tester) async {
+  testWidgets('shows error when EmailMonitorError arrives during verification',
+      (tester) async {
+    final ctrl = StreamController<EmailMonitorState>.broadcast();
     whenListen(
-      mockCubit,
-      Stream.fromIterable([const CredentialsError('Keychain denied')]),
-      initialState: const CredentialsInitial(),
+      mockMonitorCubit,
+      ctrl.stream,
+      initialState: const EmailMonitorInitial(),
     );
+    when(() => mockMonitorCubit.verifyAndStart(any(), any()))
+        .thenAnswer((_) async {
+      ctrl.add(const EmailMonitorError('Wrong credentials.'));
+    });
 
     await tester.pumpWidget(buildSubject());
+    await tester.enterText(
+        find.widgetWithText(TextField, 'you@gmail.com'), 'me@gmail.com');
+    await tester.enterText(
+        find.widgetWithText(TextField, '16-character app password'), 'mypass');
+    await tester.tap(find.text('Connect'));
     await tester.pump();
 
-    expect(find.text('Keychain denied'), findsOneWidget);
+    expect(find.text('Wrong credentials.'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    await ctrl.close();
   });
 
   testWidgets('password field starts obscured with a show toggle',
       (tester) async {
     await tester.pumpWidget(buildSubject());
 
-    // Obscured initially → "show" icon is visible
     expect(find.byIcon(Icons.visibility_off), findsOneWidget);
     expect(find.byIcon(Icons.visibility), findsNothing);
 
@@ -151,7 +153,6 @@ void main() {
       (tester) async {
     await tester.pumpWidget(buildSubject());
 
-    // Reveal
     await tester.tap(find.byIcon(Icons.visibility_off));
     await tester.pump();
 
@@ -161,7 +162,6 @@ void main() {
     );
     expect(field.obscureText, isFalse);
 
-    // Hide again
     await tester.tap(find.byIcon(Icons.visibility));
     await tester.pump();
 
@@ -175,7 +175,6 @@ void main() {
   testWidgets('email field has no password toggle', (tester) async {
     await tester.pumpWidget(buildSubject());
 
-    // Only the password field shows an eye icon — exactly one in the screen
     expect(find.byIcon(Icons.visibility_off), findsOneWidget);
   });
 
@@ -188,68 +187,23 @@ void main() {
     expect(find.text('Gmail rejected these credentials.'), findsOneWidget);
   });
 
-  testWidgets('clears fields on CredentialsCleared state', (tester) async {
-    whenListen(
-      mockCubit,
-      Stream.fromIterable([const CredentialsCleared()]),
-      initialState: const CredentialsInitial(),
-    );
+  testWidgets('clears error message when user edits any field', (tester) async {
+    await tester.pumpWidget(buildSubject(
+      errorMessage: 'Wrong credentials.',
+    ));
+    expect(find.text('Wrong credentials.'), findsOneWidget);
 
-    await tester.pumpWidget(buildSubject(initialEmail: tCredentials.email));
+    await tester.enterText(
+        find.widgetWithText(TextField, 'you@gmail.com'), 'a');
     await tester.pump();
 
-    expect(find.text('Credentials cleared.'), findsOneWidget);
+    expect(find.text('Wrong credentials.'), findsNothing);
   });
 
-  group('start at login', () {
-    testWidgets('shows the checkbox, checked by default on first run',
-        (tester) async {
-      await tester.pumpWidget(buildSubject()); // no initialEmail = first run
-      await tester.pump();
+  // Regression: email field pre-populated when initialEmail provided
+  testWidgets('email field shows initialEmail value', (tester) async {
+    await tester.pumpWidget(buildSubject(initialEmail: tCredentials.email));
 
-      expect(
-        find.text('Start automatically at login (recommended)'),
-        findsOneWidget,
-      );
-      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
-      expect(checkbox.value, isTrue);
-    });
-
-    testWidgets('reflects the real OS state for a returning user',
-        (tester) async {
-      when(() => mockStartup.isEnabled()).thenAnswer((_) async => false);
-
-      await tester.pumpWidget(buildSubject(initialEmail: tCredentials.email));
-      await tester.pump(); // let _loadStartupState resolve
-
-      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
-      expect(checkbox.value, isFalse);
-      verify(() => mockStartup.isEnabled()).called(1);
-    });
-
-    testWidgets('unchecking calls startup.disable()', (tester) async {
-      await tester.pumpWidget(buildSubject());
-      await tester.pump();
-
-      await tester.tap(find.byType(Checkbox)); // true -> false
-      await tester.pump();
-
-      verify(() => mockStartup.disable()).called(1);
-    });
-
-    testWidgets('Save applies the login preference (enable when checked)',
-        (tester) async {
-      when(() => mockCubit.save(any(), any())).thenAnswer((_) async {});
-      await tester.pumpWidget(buildSubject());
-
-      await tester.enterText(
-          find.widgetWithText(TextField, 'you@gmail.com'), 'me@gmail.com');
-      await tester.enterText(
-          find.widgetWithText(TextField, '16-character app password'), 'pw');
-      await tester.tap(find.text('Save'));
-      await tester.pump();
-
-      verify(() => mockStartup.enable()).called(1);
-    });
+    expect(find.widgetWithText(TextField, tCredentials.email), findsOneWidget);
   });
 }

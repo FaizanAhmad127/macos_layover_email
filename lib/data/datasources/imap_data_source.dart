@@ -9,6 +9,7 @@ import '../models/email_model.dart';
 abstract class ImapDataSource {
   Stream<EmailModel> watchNewEmails(String email, String password);
   Future<void> stopWatching();
+  Future<void> verifyCredentials(String email, String password);
 }
 
 class ImapDataSourceImpl implements ImapDataSource {
@@ -23,6 +24,7 @@ class ImapDataSourceImpl implements ImapDataSource {
   }
 
   Future<void> _connect(String email, String password) async {
+    MailClient? client;
     try {
       final account = MailAccount.fromManualSettings(
         name: 'Gmail',
@@ -32,7 +34,8 @@ class ImapDataSourceImpl implements ImapDataSource {
         outgoingHost: 'smtp.gmail.com',
       );
 
-      _mailClient = MailClient(account, isLogEnabled: false);
+      client = MailClient(account, isLogEnabled: false);
+      _mailClient = client;
 
       _mailClient!.eventBus.on<MailLoadEvent>().listen((event) {
         _controller?.add(EmailModel.fromMimeMessage(event.message));
@@ -46,7 +49,31 @@ class ImapDataSourceImpl implements ImapDataSource {
       await _mailClient!.startPolling(const Duration(minutes: 1));
     } catch (e) {
       debugPrint('ImapDataSource: connection error — $e');
+      // Explicitly disconnect the failed client to close the socket cleanly and
+      // prevent SIGURG from a dangling SSL socket on macOS (exit code 144).
+      try {
+        await client?.disconnect();
+      } catch (_) {}
+      _mailClient = null;
       _controller?.addError(NetworkFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<void> verifyCredentials(String email, String password) async {
+    final account = MailAccount.fromManualSettings(
+      name: 'Gmail',
+      email: email,
+      password: password,
+      incomingHost: 'imap.gmail.com',
+      outgoingHost: 'smtp.gmail.com',
+    );
+    final client = MailClient(account, isLogEnabled: false);
+    try {
+      await client.connect();
+      await client.selectInbox();
+    } finally {
+      await client.disconnect();
     }
   }
 

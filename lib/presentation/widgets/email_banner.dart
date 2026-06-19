@@ -1,13 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../core/overlay_window.dart';
 import 'banner_controller.dart';
 
-/// A transparent banner (email icon + sender + subject + close button) that
-/// travels left→right across the screen and parks at the right edge. It stays
-/// until the user dismisses it with the close button — there is no auto-hide.
+/// A transparent pill banner (sender + subject + parrot) that travels
+/// left→right by moving the window itself. The window is content-sized
+/// (420×90), so only the pill area captures mouse events — the rest of the
+/// screen is unobstructed. Tap anywhere on the pill to dismiss.
 class EmailBanner extends StatefulWidget {
   const EmailBanner({super.key, required this.controller});
 
@@ -20,14 +23,16 @@ class EmailBanner extends StatefulWidget {
 class _EmailBannerState extends State<EmailBanner>
     with SingleTickerProviderStateMixin {
   late final AnimationController _travelController;
-  late final Animation<double> _travelX; // -1 (left) → 1 (right)
 
   StreamSubscription<({String subject, String from})>? _sub;
   String _subject = '';
   String _from = '';
   bool _visible = false;
 
-  // Text shadows give legibility over any desktop background (no banner box).
+  // Pill window size — must match what main.dart sets via setSize().
+  static const double _pillWidth = 420;
+  static const double _pillHeight = 90;
+
   static const _shadows = [
     Shadow(blurRadius: 6, color: Colors.black, offset: Offset(0, 1)),
     Shadow(blurRadius: 12, color: Colors.black54),
@@ -37,16 +42,23 @@ class _EmailBannerState extends State<EmailBanner>
   void initState() {
     super.initState();
 
-    // Travel across the full screen width — slow, leisurely glide.
     _travelController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 20000),
     );
-    _travelX = Tween<double>(begin: -1, end: 1).animate(
-      CurvedAnimation(parent: _travelController, curve: Curves.easeInOut),
-    );
+    _travelController.addListener(_onTick);
 
     _sub = widget.controller.stream.listen(_onNewEmail);
+  }
+
+  /// Moves the window across the screen on every animation frame.
+  void _onTick() {
+    final t = _travelController.value;
+    final screenW = widget.controller.screenWidth;
+    final screenH = widget.controller.screenHeight;
+    final x = -_pillWidth + t * screenW;
+    final y = (screenH - _pillHeight) / 2;
+    windowManager.setPosition(Offset(x, y));
   }
 
   Future<void> _onNewEmail(({String subject, String from}) email) async {
@@ -55,21 +67,24 @@ class _EmailBannerState extends State<EmailBanner>
       _from = email.from;
       _visible = true;
     });
-    // Make the window interactive so the close button is clickable.
     await windowManager.setIgnoreMouseEvents(false);
-    await windowManager.show();
-    _travelController.forward(from: 0); // restart the travel for each new mail
+    // Show natively (orderFrontRegardless) so the banner draws over full-screen
+    // apps without activating the app / switching Spaces.
+    await OverlayWindow.show();
+    await windowManager.setBackgroundColor(Colors.transparent);
+    _travelController.forward(from: 0);
   }
 
   Future<void> _dismiss() async {
     setState(() => _visible = false);
     _travelController.reset();
-    await windowManager.hide();
+    await OverlayWindow.hide();
     await windowManager.setIgnoreMouseEvents(true);
   }
 
   @override
   void dispose() {
+    _travelController.removeListener(_onTick);
     _travelController.dispose();
     _sub?.cancel();
     super.dispose();
@@ -79,37 +94,16 @@ class _EmailBannerState extends State<EmailBanner>
   Widget build(BuildContext context) {
     if (!_visible) return const SizedBox.shrink();
 
-    return AnimatedBuilder(
-      animation: _travelX,
-      builder: (context, child) {
-        return Align(
-          alignment: Alignment(_travelX.value, 0),
-          child: child,
-        );
-      },
+    return GestureDetector(
+      onTap: _dismiss,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        // Subtle translucent pill behind the content so white text stays
-        // legible over light *and* dark windows, while the rest of the strip
-        // is fully transparent.
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.email,
-                color: Colors.white,
-                size: 34,
-                shadows: _shadows,
-              ),
-            const SizedBox(width: 14),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(width: 4),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
+              constraints: const BoxConstraints(maxWidth: 260),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,21 +134,19 @@ class _EmailBannerState extends State<EmailBanner>
                 ],
               ),
             ),
-              const SizedBox(width: 10),
-              // Close / cancel button — the only way to remove the banner.
-              IconButton(
-                onPressed: _dismiss,
-                tooltip: 'Dismiss',
-                splashRadius: 18,
-                icon: const Icon(
-                  Icons.cancel,
-                  color: Colors.white,
-                  size: 24,
-                  shadows: _shadows,
-                ),
+            const SizedBox(width: 10),
+            Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.diagonal3Values(-1, 1, 1),
+              child: Lottie.asset(
+                'assets/animations/parrot.json',
+                width: 72,
+                height: 72,
+                repeat: true,
+                fit: BoxFit.contain,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -14,4 +14,8 @@ class EmailRepositoryImpl implements EmailRepository {
 
   @override
   Future<void> stopWatching() => _dataSource.stopWatching();
+
+  @override
+  Future<void> verifyCredentials(Credentials credentials) =>
+      _dataSource.verifyCredentials(credentials.email, credentials.password);
 }

@@ -1,26 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/startup_service.dart';
-import '../../injection/injection_container.dart';
-import '../cubits/credentials/credentials_cubit.dart';
-import '../cubits/credentials/credentials_state.dart';
+import '../cubits/email_monitor/email_monitor_cubit.dart';
+import '../cubits/email_monitor/email_monitor_state.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
     this.initialEmail,
     this.errorMessage,
-    this.startupService,
   });
 
   final String? initialEmail;
-
-  /// Pre-displayed error (e.g. shown when reopened after an auth failure).
   final String? errorMessage;
-
-  /// Injectable for tests; falls back to the GetIt-registered service.
-  final StartupService? startupService;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -29,52 +23,36 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _passCtrl;
-  late final StartupService _startup;
   String? _statusMessage;
   bool _isError = false;
-
-  // Recommended ON by default on first run (no saved email yet); for a
-  // returning user we reflect the real OS login-item state instead.
-  bool _startAtLogin = true;
+  bool _isVerifying = false;
 
   @override
   void initState() {
     super.initState();
     _emailCtrl = TextEditingController(text: widget.initialEmail ?? '');
     _passCtrl = TextEditingController();
-    _startup = widget.startupService ?? sl<StartupService>();
     if (widget.errorMessage != null) {
       _statusMessage = widget.errorMessage;
       _isError = true;
     }
-    final email = widget.initialEmail;
-    if (email != null && email.isNotEmpty) {
-      _loadStartupState();
-    }
+    _emailCtrl.addListener(_clearErrorOnEdit);
+    _passCtrl.addListener(_clearErrorOnEdit);
   }
 
-  Future<void> _loadStartupState() async {
-    try {
-      final enabled = await _startup.isEnabled();
-      if (mounted) setState(() => _startAtLogin = enabled);
-    } catch (_) {
-      // Leave the default if the platform query fails.
-    }
-  }
-
-  Future<void> _setStartAtLogin(bool value) async {
-    setState(() => _startAtLogin = value);
-    try {
-      value ? await _startup.enable() : await _startup.disable();
-    } catch (_) {
-      // Non-fatal: keep the UI state even if the toggle didn't take.
+  void _clearErrorOnEdit() {
+    if (_isError && _statusMessage != null) {
+      debugPrint('[Settings] Error cleared — user started editing a field');
+      setState(() {
+        _statusMessage = null;
+        _isError = false;
+      });
     }
   }
 
   @override
   void didUpdateWidget(SettingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Surface a new error if the screen is reused while already mounted.
     if (widget.errorMessage != null &&
         widget.errorMessage != oldWidget.errorMessage) {
       setState(() {
@@ -91,140 +69,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  void _save() {
+  void _connect() {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
     if (email.isEmpty || pass.isEmpty) {
+      debugPrint('[Settings] Connect tapped with empty fields');
       setState(() {
         _statusMessage = 'Email and app password are required.';
         _isError = true;
       });
       return;
     }
-    context.read<CredentialsCubit>().save(email, pass);
-    // Apply the login-at-startup choice (covers the first-run default-on case
-    // where the checkbox was never toggled).
-    _setStartAtLogin(_startAtLogin);
+    debugPrint('[Settings] Connect tapped — verifying credentials');
+    setState(() {
+      _isVerifying = true;
+      _statusMessage = null;
+      _isError = false;
+    });
+    context.read<EmailMonitorCubit>().verifyAndStart(email, pass);
   }
-
-  void _clear() => context.read<CredentialsCubit>().clear();
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<CredentialsCubit, CredentialsState>(
+    return BlocListener<EmailMonitorCubit, EmailMonitorState>(
       listener: (context, state) {
         switch (state) {
-          case CredentialsSaved():
-            setState(() {
-              _statusMessage = 'Saved — connecting to Gmail…';
-              _isError = false;
-              _passCtrl.clear();
-            });
-          case CredentialsCleared():
-            setState(() {
-              _emailCtrl.clear();
-              _passCtrl.clear();
-              _statusMessage = 'Credentials cleared.';
-              _isError = false;
-            });
-          case CredentialsError(:final message):
+          case EmailMonitorError(:final message):
             setState(() {
               _statusMessage = message;
               _isError = true;
+              _isVerifying = false;
             });
           default:
             break;
         }
       },
-      child: Container(
-        color: const Color(0xFF1E1E1E),
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-            const Text(
-              'Gmail Settings',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _FormField(
-              controller: _emailCtrl,
-              label: 'Gmail address',
-              hint: 'you@gmail.com',
-            ),
-            const SizedBox(height: 12),
-            _FormField(
-              controller: _passCtrl,
-              label: 'App password',
-              hint: '16-character app password',
-              obscure: true,
-            ),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: () => _setStartAtLogin(!_startAtLogin),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: Checkbox(
-                        value: _startAtLogin,
-                        onChanged: (v) => _setStartAtLogin(v ?? false),
-                        side: const BorderSide(color: Color(0xFF777777)),
-                      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            color: const Color(0xFF1E1E1E),
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Gmail Settings',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'Start automatically at login (recommended)',
-                        style: TextStyle(color: Color(0xFFDDDDDD), fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  _FormField(
+                    controller: _emailCtrl,
+                    label: 'Gmail address',
+                    hint: 'you@gmail.com',
+                  ),
+                  const SizedBox(height: 12),
+                  _FormField(
+                    controller: _passCtrl,
+                    label: 'App password',
+                    hint: '16-character app password',
+                    obscure: true,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: _isVerifying ? null : _connect,
+                    child: _isVerifying
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Connect'),
+                  ),
+                  if (_statusMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _statusMessage!,
+                      style: TextStyle(
+                        color: _isError ? Colors.red[300] : Colors.green[300],
+                        fontSize: 12,
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _save,
-                    child: const Text('Save'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton(
-                  onPressed: _clear,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red[300],
-                    side: BorderSide(color: Colors.red[300]!),
-                  ),
-                  child: const Text('Clear'),
-                ),
-              ],
-            ),
-              if (_statusMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _statusMessage!,
-                  style: TextStyle(
-                    color: _isError ? Colors.red[300] : Colors.green[300],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ],
           ),
-        ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: IconButton(
+              onPressed: () => exit(0),
+              tooltip: 'Quit app',
+              icon: const Icon(Icons.close, color: Color(0xFF999999), size: 18),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -241,8 +190,6 @@ class _FormField extends StatefulWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
-
-  /// When true the field starts obscured and shows a show/hide eye toggle.
   final bool obscure;
 
   @override
