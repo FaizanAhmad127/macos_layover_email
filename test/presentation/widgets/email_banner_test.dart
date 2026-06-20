@@ -54,25 +54,55 @@ void main() {
     expect(find.byIcon(Icons.cancel), findsNothing);
   });
 
-  testWidgets('shows parrot animation, sender, and subject', (tester) async {
+  testWidgets('shows heading, parrot, name, sender, subject, and body',
+      (tester) async {
     await tester.pumpWidget(wrap());
 
-    controller.show(subject: 'Hello there', from: 'sender@example.com');
+    controller.show(
+      subject: 'Hello there',
+      name: 'Alice Smith',
+      from: 'sender@example.com',
+      body: 'This is the body',
+    );
     await tester.pump(); // process stream
     await tester.pump(); // rebuild visible
 
     expect(find.byType(Lottie), findsOneWidget);
-    expect(find.text('Hello there'), findsOneWidget);
+    expect(find.text('Email received'), findsOneWidget);
+    expect(find.text('Alice Smith'), findsOneWidget);
     expect(find.text('sender@example.com'), findsOneWidget);
+    expect(find.text('Hello there'), findsOneWidget);
+    expect(find.text('This is the body'), findsOneWidget);
     // Window was asked to become interactive and show natively.
     expect(calls, contains('setIgnoreMouseEvents'));
     expect(overlayCalls, contains('showOverlay'));
   });
 
+  testWidgets('omits the body line when body is empty', (tester) async {
+    await tester.pumpWidget(wrap());
+
+    controller.show(
+      subject: 'No body',
+      name: 'Bob',
+      from: 'bob@example.com',
+      body: '',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('No body'), findsOneWidget);
+    expect(find.text('Email received'), findsOneWidget);
+  });
+
   testWidgets('tapping the banner dismisses it', (tester) async {
     await tester.pumpWidget(wrap());
 
-    controller.show(subject: 'Dismiss me', from: 'x@y.com');
+    controller.show(
+      subject: 'Dismiss me',
+      name: 'X',
+      from: 'x@y.com',
+      body: 'b',
+    );
     await tester.pump();
     await tester.pump();
     expect(find.text('Dismiss me'), findsOneWidget);

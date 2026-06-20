@@ -37,8 +37,15 @@ class ImapDataSourceImpl implements ImapDataSource {
       client = MailClient(account, isLogEnabled: false);
       _mailClient = client;
 
-      _mailClient!.eventBus.on<MailLoadEvent>().listen((event) {
-        _controller?.add(EmailModel.fromMimeMessage(event.message));
+      _mailClient!.eventBus.on<MailLoadEvent>().listen((event) async {
+        var message = event.message;
+        // IDLE events arrive headers-only; fetch the full message so the body
+        // text part is available. Fall back to the headers-only message if the
+        // fetch fails so the banner still fires with subject/sender.
+        try {
+          message = await _mailClient!.fetchMessageContents(message);
+        } catch (_) {}
+        _controller?.add(EmailModel.fromMimeMessage(message));
       });
 
       await _mailClient!.connect();

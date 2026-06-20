@@ -7,10 +7,13 @@ import 'package:window_manager/window_manager.dart';
 import '../../core/overlay_window.dart';
 import 'banner_controller.dart';
 
-/// A transparent pill banner (sender + subject + parrot) that travels
-/// left→right by moving the window itself. The window is content-sized
-/// (420×90), so only the pill area captures mouse events — the rest of the
-/// screen is unobstructed. Tap anywhere on the pill to dismiss.
+/// A transparent pill banner that travels left→right by moving the window
+/// itself. The window is content-sized (440×170), so only the pill area
+/// captures mouse events — the rest of the screen is unobstructed. Tap anywhere
+/// on the pill to dismiss.
+///
+/// Layout (top→bottom): "Email received" heading, sender name, sender email,
+/// subject, then the message body.
 class EmailBanner extends StatefulWidget {
   const EmailBanner({super.key, required this.controller});
 
@@ -24,14 +27,16 @@ class _EmailBannerState extends State<EmailBanner>
     with SingleTickerProviderStateMixin {
   late final AnimationController _travelController;
 
-  StreamSubscription<({String subject, String from})>? _sub;
+  StreamSubscription<BannerEvent>? _sub;
   String _subject = '';
+  String _name = '';
   String _from = '';
+  String _body = '';
   bool _visible = false;
 
   // Pill window size — must match what main.dart sets via setSize().
-  static const double _pillWidth = 420;
-  static const double _pillHeight = 90;
+  static const double _pillWidth = 440;
+  static const double _pillHeight = 170;
 
   static const _shadows = [
     Shadow(blurRadius: 6, color: Colors.black, offset: Offset(0, 1)),
@@ -61,10 +66,12 @@ class _EmailBannerState extends State<EmailBanner>
     windowManager.setPosition(Offset(x, y));
   }
 
-  Future<void> _onNewEmail(({String subject, String from}) email) async {
+  Future<void> _onNewEmail(BannerEvent email) async {
     setState(() {
       _subject = email.subject;
+      _name = email.name;
       _from = email.from;
+      _body = email.body;
       _visible = true;
     });
     await windowManager.setIgnoreMouseEvents(false);
@@ -97,40 +104,77 @@ class _EmailBannerState extends State<EmailBanner>
     return GestureDetector(
       onTap: _dismiss,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(width: 4),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 260),
+            Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Heading — beautiful script font (built into macOS).
+                  const Text(
+                    'Email received',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Snell Roundhand',
+                      color: Color(0xFF30D158),
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      shadows: _shadows,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      shadows: _shadows,
+                    ),
+                  ),
                   Text(
                     _from,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Color(0xFFEAEAEA),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      color: Color(0xFFB8B8B8),
+                      fontSize: 8,
                       shadows: _shadows,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     _subject,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       shadows: _shadows,
                     ),
                   ),
+                  if (_body.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFFEAEAEA),
+                        fontSize: 12,
+                        height: 1.25,
+                        shadows: _shadows,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

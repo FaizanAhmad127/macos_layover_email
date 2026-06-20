@@ -11,8 +11,8 @@ import 'presentation/screens/settings_screen.dart';
 import 'presentation/widgets/banner_controller.dart';
 import 'presentation/widgets/email_banner.dart';
 
-const double _pillWidth = 420;
-const double _pillHeight = 90;
+const double _pillWidth = 440;
+const double _pillHeight = 170;
 const double _settingsWidth = 420;
 const double _settingsHeight = 380;
 late final double _screenWidth;
@@ -118,7 +118,9 @@ class App extends StatelessWidget {
                   debugPrint('New email received — showing banner');
                   bannerController.show(
                     subject: email.subject,
+                    name: email.senderName,
                     from: email.from,
+                    body: email.body,
                   );
                 case EmailMonitorCredentialsMissing():
                   _showSettings();

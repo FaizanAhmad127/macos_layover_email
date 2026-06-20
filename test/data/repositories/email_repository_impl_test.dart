@@ -14,7 +14,9 @@ void main() {
   const tCredentials = Credentials(email: 'test@gmail.com', password: 'pass');
   final tEmailModel = EmailModel(
     subject: 'Hello',
+    senderName: 'Sender',
     from: 'sender@example.com',
+    body: 'Body text',
     receivedAt: DateTime(2026, 6, 17),
   );
 

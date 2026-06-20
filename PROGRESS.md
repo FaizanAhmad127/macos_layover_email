@@ -175,6 +175,13 @@ Removed the credential-storage and start-at-login slices, orphaned once credenti
 - ⚠️ UX consequence (accepted for now): no Dock icon + no tray ⇒ once the app hides to banner mode there's no on-screen way to reopen Settings or quit; quit via stopping the run / Activity Monitor, or re-enable the Dock icon.
 - Tests: **42/42 passing**.
 
+## 2026-06-20 — richer banner content
+Banner now shows five stacked lines (top→bottom): **"Email received"** heading (bold green `#30D158`, macOS built-in **Snell Roundhand** script font — no asset/runtime download needed), sender **name** (12px), sender **email** (8px), **subject** (16px bold), and **message body** (12px, 2 lines, ellipsized; line hidden when empty). Parrot stays on the right.
+- **New data captured**: added `senderName` + `body` to `Email` entity + `EmailModel`. `senderName` from `from.first.personalName` (falls back to address); `body` from `decodeTextPlainPart()`, whitespace-collapsed.
+- **Body fetch**: `ImapDataSourceImpl` now `fetchMessageContents()` on each `MailLoadEvent` (IDLE delivers headers-only) before emitting — falls back to headers-only message on fetch failure so the banner still fires.
+- **Banner plumbing**: `BannerController` event is now `BannerEvent = ({subject, name, from, body})`; `main.dart` passes all four; pill grew `420×90` → `440×170` (constant duplicated in `main.dart` + `email_banner.dart`, must stay in sync).
+- Tests: **43/43 passing** (banner/controller/cubit/repo/usecase tests updated for new fields; added empty-body test).
+
 ## Next / Polish
 - Replace ✉️ emoji tray title with a proper PNG template image for native menu bar look
 - Add error recovery UI: banner or tray tooltip when IMAP reconnect fails repeatedly
