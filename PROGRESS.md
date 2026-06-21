@@ -182,6 +182,12 @@ Banner now shows five stacked lines (top→bottom): **"Email received"** heading
 - **Banner plumbing**: `BannerController` event is now `BannerEvent = ({subject, name, from, body})`; `main.dart` passes all four; pill grew `420×90` → `440×170` (constant duplicated in `main.dart` + `email_banner.dart`, must stay in sync).
 - Tests: **43/43 passing** (banner/controller/cubit/repo/usecase tests updated for new fields; added empty-body test).
 
+## 2026-06-21 — banner pink panel + bigger parrot
+- **Pink panel behind text**: text column now sits in a rounded (16px) `Container` with a faint pink wash (`Color(0x1AFFE3E8)`, 10% opacity) + soft drop shadow. Parrot stays outside the panel.
+- **Readable on any background**: text kept light (white/`#3DDC6E` green heading/light greys) with black drop shadows so it reads over the near-transparent panel on both light and dark apps behind it.
+- **Overflow fix**: panel has a definite height (`_pillHeight - 16`), `Column` is `mainAxisSize.max`, and the body line is wrapped in `Flexible` → long text ellipsizes/clips instead of the 4px RenderFlex overflow.
+- **Parrot 2×**: `72→144`. Pill widened `440→540` (`_pillWidth` constant duplicated in `main.dart` + `email_banner.dart` — must stay in sync; height still 170).
+
 ## Next / Polish
 - Replace ✉️ emoji tray title with a proper PNG template image for native menu bar look
 - Add error recovery UI: banner or tray tooltip when IMAP reconnect fails repeatedly

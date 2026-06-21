@@ -11,7 +11,7 @@ import 'presentation/screens/settings_screen.dart';
 import 'presentation/widgets/banner_controller.dart';
 import 'presentation/widgets/email_banner.dart';
 
-const double _pillWidth = 440;
+const double _pillWidth = 540;
 const double _pillHeight = 170;
 const double _settingsWidth = 420;
 const double _settingsHeight = 380;
