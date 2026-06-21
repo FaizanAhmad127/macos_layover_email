@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../core/constants/imap_config.dart';
 import '../../core/errors/failures.dart';
 import '../models/email_model.dart';
 
@@ -23,16 +24,21 @@ class ImapDataSourceImpl implements ImapDataSource {
     return _controller!.stream;
   }
 
+  /// Builds a Gmail [MailAccount] from [ImapConfig] — single source of truth
+  /// for host/port/account values (see CLAUDE.md: never hardcode these).
+  MailAccount _account(String email, String password) =>
+      MailAccount.fromManualSettings(
+        name: ImapConfig.accountName,
+        email: email,
+        password: password,
+        incomingHost: ImapConfig.incomingHost,
+        outgoingHost: ImapConfig.outgoingHost,
+      );
+
   Future<void> _connect(String email, String password) async {
     MailClient? client;
     try {
-      final account = MailAccount.fromManualSettings(
-        name: 'Gmail',
-        email: email,
-        password: password,
-        incomingHost: 'imap.gmail.com',
-        outgoingHost: 'smtp.gmail.com',
-      );
+      final account = _account(email, password);
 
       client = MailClient(account, isLogEnabled: false);
       _mailClient = client;
@@ -52,8 +58,8 @@ class ImapDataSourceImpl implements ImapDataSource {
       // Must select a mailbox before IDLE/polling — otherwise enough_mail
       // throws `idleStart(): no mailbox selected` and no new-mail events fire.
       await _mailClient!.selectInbox();
-      // Uses IMAP IDLE when supported (Gmail does); polls every minute otherwise.
-      await _mailClient!.startPolling(const Duration(minutes: 1));
+      // Uses IMAP IDLE when supported (Gmail does); polls otherwise.
+      await _mailClient!.startPolling(ImapConfig.pollInterval);
     } catch (e) {
       debugPrint('ImapDataSource: connection error — $e');
       // Explicitly disconnect the failed client to close the socket cleanly and
@@ -68,14 +74,7 @@ class ImapDataSourceImpl implements ImapDataSource {
 
   @override
   Future<void> verifyCredentials(String email, String password) async {
-    final account = MailAccount.fromManualSettings(
-      name: 'Gmail',
-      email: email,
-      password: password,
-      incomingHost: 'imap.gmail.com',
-      outgoingHost: 'smtp.gmail.com',
-    );
-    final client = MailClient(account, isLogEnabled: false);
+    final client = MailClient(_account(email, password), isLogEnabled: false);
     try {
       await client.connect();
       await client.selectInbox();

@@ -3,8 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../cubits/email_monitor/email_monitor_cubit.dart';
 import '../cubits/email_monitor/email_monitor_state.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_dimensions.dart';
+import '../theme/app_text_styles.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -75,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (email.isEmpty || pass.isEmpty) {
       debugPrint('[Settings] Connect tapped with empty fields');
       setState(() {
-        _statusMessage = 'Email and app password are required.';
+        _statusMessage = AppStrings.emptyFieldsError;
         _isError = true;
       });
       return;
@@ -108,56 +112,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            color: const Color(0xFF1E1E1E),
-            padding: const EdgeInsets.all(24),
+            color: AppColors.settingsBackground,
+            padding: const EdgeInsets.all(AppDimensions.settingsPadding),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Gmail Settings',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    AppStrings.settingsTitle,
+                    style: AppTextStyles.settingsTitle,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppDimensions.settingsTitleGap),
                   _FormField(
                     controller: _emailCtrl,
-                    label: 'Gmail address',
-                    hint: 'you@gmail.com',
+                    label: AppStrings.gmailAddressLabel,
+                    hint: AppStrings.gmailAddressHint,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppDimensions.fieldGap),
                   _FormField(
                     controller: _passCtrl,
-                    label: 'App password',
-                    hint: '16-character app password',
+                    label: AppStrings.appPasswordLabel,
+                    hint: AppStrings.appPasswordHint,
                     obscure: true,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppDimensions.fieldToButtonGap),
                   FilledButton(
                     onPressed: _isVerifying ? null : _connect,
                     child: _isVerifying
                         ? const SizedBox(
-                            height: 16,
-                            width: 16,
+                            height: AppDimensions.spinnerSize,
+                            width: AppDimensions.spinnerSize,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                              strokeWidth: AppDimensions.spinnerStroke,
+                              color: AppColors.fieldText,
                             ),
                           )
-                        : const Text('Connect'),
+                        : const Text(AppStrings.connect),
                   ),
                   if (_statusMessage != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppDimensions.statusGap),
                     Text(
                       _statusMessage!,
-                      style: TextStyle(
-                        color: _isError ? Colors.red[300] : Colors.green[300],
-                        fontSize: 12,
-                      ),
+                      style: AppTextStyles.statusMessage(_isError),
                     ),
                   ],
                 ],
@@ -165,12 +162,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           Positioned(
-            top: 4,
-            right: 4,
+            top: AppDimensions.quitButtonInset,
+            right: AppDimensions.quitButtonInset,
             child: IconButton(
               onPressed: () => exit(0),
-              tooltip: 'Quit app',
-              icon: const Icon(Icons.close, color: Color(0xFF999999), size: 18),
+              tooltip: AppStrings.quitTooltip,
+              icon: const Icon(
+                Icons.close,
+                color: AppColors.iconMuted,
+                size: AppDimensions.iconSize,
+              ),
             ),
           ),
         ],
@@ -204,42 +205,46 @@ class _FormFieldState extends State<_FormField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12),
-        ),
-        const SizedBox(height: 4),
+        Text(widget.label, style: AppTextStyles.fieldLabel),
+        const SizedBox(height: AppDimensions.fieldLabelGap),
         TextField(
           controller: widget.controller,
           obscureText: _obscured,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: AppTextStyles.fieldInput,
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(color: Color(0xFF555555)),
+            hintStyle: AppTextStyles.fieldHint,
             filled: true,
-            fillColor: const Color(0xFF2A2A2A),
+            fillColor: AppColors.fieldFill,
             suffixIcon: widget.obscure
                 ? IconButton(
-                    splashRadius: 18,
-                    tooltip: _obscured ? 'Show password' : 'Hide password',
+                    splashRadius: AppDimensions.iconSplashRadius,
+                    tooltip: _obscured
+                        ? AppStrings.showPassword
+                        : AppStrings.hidePassword,
                     icon: Icon(
                       _obscured ? Icons.visibility_off : Icons.visibility,
-                      color: const Color(0xFF999999),
-                      size: 18,
+                      color: AppColors.iconMuted,
+                      size: AppDimensions.iconSize,
                     ),
                     onPressed: () => setState(() => _obscured = !_obscured),
                   )
                 : null,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppDimensions.fieldRadius),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(color: Color(0xFF4A90D9), width: 1),
+              borderRadius: BorderRadius.circular(AppDimensions.fieldRadius),
+              borderSide: const BorderSide(
+                color: AppColors.fieldFocusBorder,
+                width: 1,
+              ),
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppDimensions.fieldContentPaddingH,
+              vertical: AppDimensions.fieldContentPaddingV,
+            ),
           ),
         ),
       ],

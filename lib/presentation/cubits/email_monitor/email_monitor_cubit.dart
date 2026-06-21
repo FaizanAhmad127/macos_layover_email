@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/imap_error.dart';
 import '../../../domain/entities/credentials.dart';
 import '../../../domain/usecases/stop_watching.dart';
@@ -55,15 +56,8 @@ class EmailMonitorCubit extends Cubit<EmailMonitorState> {
     await _stopWatching();
   }
 
-  String _friendlyError(String raw) {
-    if (isAuthFailure(raw)) {
-      return 'Wrong credentials. Enter your Gmail address and a 16-character '
-          'App Password — not your regular Gmail password. You can create one '
-          'at myaccount.google.com → Security → App Passwords.';
-    }
-    return 'Could not connect to Gmail. Check your internet connection and '
-        'credentials, then try again.';
-  }
+  String _friendlyError(String raw) =>
+      isAuthFailure(raw) ? AppStrings.wrongCredentials : AppStrings.connectionFailed;
 
   @override
   Future<void> close() async {

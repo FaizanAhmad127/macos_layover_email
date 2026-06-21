@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/constants/app_strings.dart';
 import 'core/imap_error.dart';
 import 'core/overlay_window.dart';
 import 'injection/injection_container.dart';
 import 'presentation/cubits/email_monitor/email_monitor_cubit.dart';
 import 'presentation/cubits/email_monitor/email_monitor_state.dart';
 import 'presentation/screens/settings_screen.dart';
+import 'presentation/theme/app_dimensions.dart';
 import 'presentation/widgets/banner_controller.dart';
 import 'presentation/widgets/email_banner.dart';
 
-const double _pillWidth = 540;
-const double _pillHeight = 170;
-const double _settingsWidth = 420;
-const double _settingsHeight = 380;
 late final double _screenWidth;
 late final double _screenHeight;
 late final BannerController _bannerController;
 
-Offset get _bannerHiddenPosition =>
-    Offset(-_pillWidth, (_screenHeight - _pillHeight) / 2);
+Offset get _bannerHiddenPosition => Offset(
+      -AppDimensions.pillWidth,
+      (_screenHeight - AppDimensions.pillHeight) / 2,
+    );
 
 // 'settings' | 'banner'
 final _windowMode = ValueNotifier<(String, String?)>(('settings', null));
@@ -28,7 +28,9 @@ final _windowMode = ValueNotifier<(String, String?)>(('settings', null));
 Future<void> _showSettings({String? error}) async {
   _bannerController.settingsOpen = true;
   await windowManager.setIgnoreMouseEvents(false);
-  await windowManager.setSize(const Size(_settingsWidth, _settingsHeight));
+  await windowManager.setSize(
+    const Size(AppDimensions.settingsWidth, AppDimensions.settingsHeight),
+  );
   _windowMode.value = ('settings', error);
   await windowManager.center();
   await windowManager.show();
@@ -41,7 +43,9 @@ Future<void> _hideToBanner() async {
   _bannerController.settingsOpen = false;
   try {
     await OverlayWindow.hide();
-    await windowManager.setSize(const Size(_pillWidth, _pillHeight));
+    await windowManager.setSize(
+      const Size(AppDimensions.pillWidth, AppDimensions.pillHeight),
+    );
     await windowManager.setPosition(_bannerHiddenPosition);
     await windowManager.setIgnoreMouseEvents(true);
   } catch (e, st) {
@@ -61,7 +65,7 @@ void main() async {
 
   await windowManager.waitUntilReadyToShow(
     WindowOptions(
-      size: const Size(_settingsWidth, _settingsHeight),
+      size: const Size(AppDimensions.settingsWidth, AppDimensions.settingsHeight),
       backgroundColor: Colors.transparent,
       // No taskbar/Dock entry — background agent. DOCK ICON: set to false (and
       // switch AppDelegate to .regular) to show a Dock icon; full-screen
@@ -154,16 +158,10 @@ class App extends StatelessWidget {
 
   String _friendlyError(String message) {
     if (isAuthFailure(message)) {
-      return 'Wrong credentials. Enter your Gmail address '
-          'and a 16-character App Password — not your '
-          'regular Gmail password. You can create one at '
-          'myaccount.google.com → Security → App Passwords.';
+      return AppStrings.wrongCredentials;
     } else if (isCredentialError(message)) {
-      return "Couldn't access saved credentials. "
-          'Please enter them again to reconnect.';
+      return AppStrings.credentialAccessFailed;
     }
-    return 'Could not connect to Gmail. '
-        'Check your internet connection and credentials, '
-        'then tap Connect to reconnect.';
+    return AppStrings.connectionFailedReconnect;
   }
 }

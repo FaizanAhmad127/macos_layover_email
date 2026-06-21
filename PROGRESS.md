@@ -188,6 +188,14 @@ Banner now shows five stacked lines (top→bottom): **"Email received"** heading
 - **Overflow fix**: panel has a definite height (`_pillHeight - 16`), `Column` is `mainAxisSize.max`, and the body line is wrapped in `Flexible` → long text ellipsizes/clips instead of the 4px RenderFlex overflow.
 - **Parrot 2×**: `72→144`. Pill widened `440→540` (`_pillWidth` constant duplicated in `main.dart` + `email_banner.dart` — must stay in sync; height still 170).
 
+## 2026-06-21 session 2 — design tokens / config extraction
+Pulled scattered hardcoded UI + config literals into single-responsibility classes (`abstract final class`, `static const`). No behavior/visual change — pure extraction; 43/43 tests pass unchanged.
+- **New `lib/presentation/theme/`**: `AppColors` (palette), `AppShadows` (text + panel), `AppTextStyles` (composed styles incl. `statusMessage(isError)` + `scriptFontFamily`), `AppDimensions` (sizes/radii/spacing/durations; `panelHeight` derived).
+- **New `lib/core/constants/`**: `AppStrings` (all UI text + the friendly-error messages) and `ImapConfig` (account name / IMAP+SMTP host / poll interval).
+- **Dedup bugs fixed**: pill size was declared twice (`main.dart` + `email_banner.dart`) → now only `AppDimensions.pill{Width,Height}`. Gmail host/name was inline twice in `imap_data_source.dart` → now `ImapConfig` via a private `_account()` helper. Friendly-error strings centralized in `AppStrings` (both wording variants preserved: cubit "try again" vs main "tap Connect to reconnect").
+- **Refactored**: `email_banner.dart` (+ extracted `_TextPanel` widget), `main.dart`, `settings_screen.dart`, `imap_data_source.dart`, `email_monitor_cubit.dart`.
+- Verified: dart MCP analyze clean (only pre-existing `prefer_initializing_formals` infos), `flutter test` 43/43, build + launch boots clean.
+
 ## Next / Polish
 - Replace ✉️ emoji tray title with a proper PNG template image for native menu bar look
 - Add error recovery UI: banner or tray tooltip when IMAP reconnect fails repeatedly
